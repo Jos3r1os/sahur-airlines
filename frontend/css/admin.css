@@ -1,0 +1,41 @@
+/* ============================================================
+   Pantallas de administracion: pestanas y generador de asientos
+   (se usa en catalogos.html)
+   ============================================================ */
+
+.pestanas {
+    display: flex;
+    gap: .25rem;
+    border-bottom: 2px solid var(--linea);
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.pestanas button {
+    font: inherit;
+    font-weight: 600;
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+    padding: .7rem 1.1rem;
+    color: var(--gris);
+    cursor: pointer;
+}
+.pestanas button:hover { color: var(--marino); }
+.pestanas button[aria-selected="true"] {
+    color: var(--marino);
+    border-bottom-color: var(--dorado);
+}
+
+.generador {
+    border-top: 1px solid var(--linea);
+    margin-top: 1rem;
+    padding-top: 1rem;
+}
+
+.generador .fila { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+@media (max-width: 760px) {
+    .generador .fila { grid-template-columns: 1fr; }
+}

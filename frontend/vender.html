@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Vender boleto - Sahur Airlines</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/estilos.css">
+    <link rel="stylesheet" href="css/boletos.css">
+</head>
+<body>
+<div class="app">
+    <aside class="menu" id="menu"></aside>
+
+    <main class="contenido">
+        <div class="encabezado">
+            <div>
+                <h1>Vender boleto</h1>
+                <p>Elige pasajero, vuelo y asiento. Puedes agregar varios boletos antes de cobrar.</p>
+            </div>
+        </div>
+
+        <!-- Paso 1: pasajero -->
+        <section class="panel paso" id="paso-pasajero">
+            <div class="paso-titulo"><span class="paso-numero">1</span><h2>Pasajero</h2></div>
+            <div class="paso-contenido" id="contenido-pasajero">
+                <div class="campo">
+                    <label for="buscar-pasajero">Buscar por nombre o documento</label>
+                    <input id="buscar-pasajero" type="search" placeholder="Ej. Garcia o 1745896320101">
+                    <p class="ayuda">Si no aparece, registralo primero en <a href="pasajeros.html">Pasajeros</a>.</p>
+                </div>
+                <div class="tabla-contenedor">
+                    <table>
+                        <tbody id="filas-pasajeros"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Paso 2: vuelo -->
+        <section class="panel paso bloqueado" id="paso-vuelo">
+            <div class="paso-titulo"><span class="paso-numero">2</span><h2>Vuelo</h2></div>
+            <div class="paso-contenido">
+                <div class="filtros">
+                    <div class="campo">
+                        <label for="filtro-origen">Origen</label>
+                        <select id="filtro-origen"><option value="">Todos</option></select>
+                    </div>
+                    <div class="campo">
+                        <label for="filtro-destino">Destino</label>
+                        <select id="filtro-destino"><option value="">Todos</option></select>
+                    </div>
+                    <div class="campo">
+                        <label for="filtro-fecha">Fecha de salida</label>
+                        <input id="filtro-fecha" type="date">
+                    </div>
+                </div>
+                <div class="tabla-contenedor">
+                    <table>
+                        <thead>
+                            <tr><th>Vuelo</th><th>Ruta</th><th>Salida</th><th>Llegada</th><th>Precio base</th><th></th></tr>
+                        </thead>
+                        <tbody id="filas-vuelos"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Paso 3: asiento -->
+        <section class="panel paso bloqueado" id="paso-asiento">
+            <div class="paso-titulo"><span class="paso-numero">3</span><h2>Asiento</h2></div>
+            <div class="paso-contenido" id="contenido-asiento">
+                <p class="ayuda">Primero elige un vuelo.</p>
+            </div>
+        </section>
+
+        <!-- Paso 4: pases de abordar y cobro -->
+        <section class="panel paso bloqueado" id="paso-cobro">
+            <div class="paso-titulo"><span class="paso-numero">4</span><h2>Pase de abordar y cobro</h2></div>
+            <div class="paso-contenido" id="contenido-cobro">
+                <p class="ayuda">Aqui apareceran los boletos que agregues.</p>
+            </div>
+        </section>
+    </main>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/boletos.js"></script>
+<script>
+    pintarMenu("vender.html");
+    const sesion = obtenerSesion();
+
+    let pasajeros = [];
+    let vuelos = [];
+    const ciudades = {};
+
+    // Todo lo que se va eligiendo durante la venta
+    const venta = {
+        pasajero: null,
+        vuelo: null,
+        asientos: [],              // todos los asientos del avion del vuelo elegido
+        disponibles: new Set(),    // ids de los asientos libres en ese vuelo
+        asiento: null,
+        reserva: null,
+        boletos: [],               // [{ boleto, vuelo, asiento }]
+        pagada: false
+    };
+
+    // ---------- Carga inicial ----------
+    async function iniciar() {
+        try {
+            const [listaPasajeros, listaVuelos, aeropuertos] = await Promise.all([
+                api("pasajeros", "/pasajeros"),
+                api("vuelos", "/vuelos/disponibles"),
+                api("vuelos", "/aeropuertos")
+            ]);
+            pasajeros = listaPasajeros;
+            vuelos = listaVuelos.sort((a, b) => a.fechaSalida.localeCompare(b.fechaSalida));
+            aeropuertos.forEach(a => ciudades[a.codigoIata] = a.ciudad);
+            llenarFiltros();
+            pintarPasajeros();
+            pintarVuelos();
+        } catch (e) {
+            mostrarMensaje(e.message, "error");
+        }
+    }
+
+    // Marca cada paso como listo, activo o bloqueado
+    function actualizarPasos() {
+        const estado = (id, listo, activo) => {
+            const paso = document.getElementById(id);
+            paso.classList.toggle("listo", listo);
+            paso.classList.toggle("activo", activo && !listo);
+            paso.classList.toggle("bloqueado", !activo && !listo);
+        };
+        const hayBoletos = venta.boletos.length > 0;
+        estado("paso-pasajero", !!venta.pasajero, true);
+        estado("paso-vuelo", !!venta.vuelo && !venta.pagada, !!venta.pasajero && !venta.pagada);
+        estado("paso-asiento", false, !!venta.vuelo && !venta.pagada);
+        estado("paso-cobro", venta.pagada, hayBoletos);
+    }
+
+    // ---------- Paso 1: pasajero ----------
+    function pintarPasajeros() {
+        const contenedor = document.getElementById("contenido-pasajero");
+        if (venta.pasajero) {
+            const p = venta.pasajero;
+            // Cuando ya hay reserva no se puede cambiar el pasajero
+            const boton = venta.reserva ? "" :
+                `<button class="boton boton-secundario boton-chico" onclick="cambiarPasajero()">Cambiar pasajero</button>`;
+            contenedor.innerHTML = `
+                <div class="elegido">
+                    <div><strong>${escapar(p.nombres)} ${escapar(p.apellidos)}</strong>
+                         <span class="secundario">Documento ${escapar(p.numeroDocumento)}</span></div>
+                    ${boton}
+                </div>`;
+            actualizarPasos();
+            return;
+        }
+
+        const texto = (document.getElementById("buscar-pasajero")?.value || "").trim().toLowerCase();
+        const lista = pasajeros.filter(p =>
+            `${p.numeroDocumento} ${p.nombres || ""} ${p.apellidos || ""}`.toLowerCase().includes(texto)
+        ).slice(0, 6);
+
+        const cuerpo = document.getElementById("filas-pasajeros");
+        if (lista.length === 0) {
+            cuerpo.innerHTML = filaVacia("No encuentro a ese pasajero. Revisa el nombre o registralo en la pantalla Pasajeros.", 3);
+        } else {
+            cuerpo.innerHTML = lista.map(p => `
+                <tr>
+                    <td>${escapar(p.nombres)} ${escapar(p.apellidos)}</td>
+                    <td>${escapar(p.numeroDocumento)}</td>
+                    <td class="acciones-tabla">
+                        <button class="boton boton-principal boton-chico" onclick="elegirPasajero(${p.idPasajero})">Elegir</button>
+                    </td>
+                </tr>`).join("");
+        }
+        actualizarPasos();
+    }
+
+    function elegirPasajero(id) {
+        venta.pasajero = pasajeros.find(p => p.idPasajero === id);
+        pintarPasajeros();
+        document.getElementById("paso-vuelo").scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    function cambiarPasajero() {
+        venta.pasajero = null;
+        document.getElementById("contenido-pasajero").innerHTML = `
+            <div class="campo">
+                <label for="buscar-pasajero">Buscar por nombre o documento</label>
+                <input id="buscar-pasajero" type="search" placeholder="Ej. Garcia o 1745896320101">
+                <p class="ayuda">Si no aparece, registralo primero en <a href="pasajeros.html">Pasajeros</a>.</p>
+            </div>
+            <div class="tabla-contenedor"><table><tbody id="filas-pasajeros"></tbody></table></div>`;
+        document.getElementById("buscar-pasajero").addEventListener("input", pintarPasajeros);
+        pintarPasajeros();
+    }
+
+    // ---------- Paso 2: vuelo ----------
+    function llenarFiltros() {
+        const origenes = [...new Set(vuelos.map(v => v.ruta.aeropuertoOrigen))].sort();
+        const destinos = [...new Set(vuelos.map(v => v.ruta.aeropuertoDestino))].sort();
+        const opcion = c => `<option value="${c}">${c} - ${escapar(ciudades[c] || "")}</option>`;
+        document.getElementById("filtro-origen").innerHTML += origenes.map(opcion).join("");
+        document.getElementById("filtro-destino").innerHTML += destinos.map(opcion).join("");
+    }
+
+    function pintarVuelos() {
+        const origen = document.getElementById("filtro-origen").value;
+        const destino = document.getElementById("filtro-destino").value;
+        const fecha = document.getElementById("filtro-fecha").value;
+        const lista = vuelos.filter(v =>
+            (!origen || v.ruta.aeropuertoOrigen === origen) &&
+            (!destino || v.ruta.aeropuertoDestino === destino) &&
+            (!fecha || v.fechaSalida.startsWith(fecha))
+        );
+        const cuerpo = document.getElementById("filas-vuelos");
+        if (lista.length === 0) {
+            cuerpo.innerHTML = filaVacia("No hay vuelos a la venta con esos filtros. Prueba con otra fecha o destino.", 6);
+            return;
+        }
+        cuerpo.innerHTML = lista.map(v => `
+            <tr class="${venta.vuelo && venta.vuelo.idVuelo === v.idVuelo ? "seleccionada" : ""}">
+                <td class="codigo">${codigoVuelo(v.idVuelo)}</td>
+                <td class="codigo">${v.ruta.aeropuertoOrigen} - ${v.ruta.aeropuertoDestino}</td>
+                <td>${fechaHora(v.fechaSalida)}</td>
+                <td>${fechaHora(v.fechaLlegada)}</td>
+                <td>${dinero(v.precioBase)}</td>
+                <td class="acciones-tabla">
+                    <button class="boton boton-principal boton-chico" onclick="elegirVuelo(${v.idVuelo})">Elegir</button>
+                </td>
+            </tr>`).join("");
+    }
+
+    async function elegirVuelo(id) {
+        venta.vuelo = vuelos.find(v => v.idVuelo === id);
+        venta.asiento = null;
+        pintarVuelos();
+        actualizarPasos();
+        await cargarAsientos();
+        document.getElementById("paso-asiento").scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    // ---------- Paso 3: asiento ----------
+    async function cargarAsientos() {
+        const contenedor = document.getElementById("contenido-asiento");
+        contenedor.innerHTML = `<p class="ayuda">Cargando asientos...</p>`;
+        try {
+            const [todos, libres] = await Promise.all([
+                api("vuelos", `/asientos/avion/${venta.vuelo.avion.idAvion}`),
+                api("reservas", `/boletos/vuelo/${venta.vuelo.idVuelo}/asientos-disponibles`)
+            ]);
+            venta.asientos = todos;
+            venta.disponibles = new Set(libres.map(a => a.idAsiento));
+            pintarMapa();
+        } catch (e) {
+            contenedor.innerHTML = capitanDice(escapar(e.message));
+        }
+    }
+
+    // Separa "12A" en fila 12 y letra A para armar el mapa
+    function partesAsiento(numero) {
+        const m = /^(\d+)([A-Z]+)$/i.exec(numero || "");
+        return m ? { fila: Number(m[1]), letra: m[2].toUpperCase() } : { fila: 999, letra: numero };
+    }
+
+    function pintarMapa() {
+        const contenedor = document.getElementById("contenido-asiento");
+        if (venta.asientos.length === 0) {
+            contenedor.innerHTML = capitanDice("Este avion no tiene asientos registrados. Agregalos en la pantalla Aeropuertos y aviones.");
+            return;
+        }
+
+        const filas = [...new Set(venta.asientos.map(a => partesAsiento(a.numeroAsiento).fila))].sort((a, b) => a - b);
+        const letras = [...new Set(venta.asientos.map(a => partesAsiento(a.numeroAsiento).letra))].sort();
+        const mitad = Math.ceil(letras.length / 2);   // el pasillo va a la mitad
+
+        const mapa = filas.map(fila => {
+            const celdas = letras.map((letra, i) => {
+                const a = venta.asientos.find(x => {
+                    const p = partesAsiento(x.numeroAsiento);
+                    return p.fila === fila && p.letra === letra;
+                });
+                const pasillo = (i === mitad && letras.length > 1) ? `<span class="pasillo"></span>` : "";
+                if (!a) return pasillo + `<span class="asiento-vacio"></span>`;
+
+                const libre = venta.disponibles.has(a.idAsiento);
+                const clases = ["asiento"];
+                if (a.tipoClase && a.tipoClase.porcentajeRecargo > 0) clases.push("ejecutiva");
+                if (!libre) clases.push("ocupado");
+                if (venta.asiento && venta.asiento.idAsiento === a.idAsiento) clases.push("elegido-asiento");
+                const descripcion = `Asiento ${a.numeroAsiento}, ${a.tipoClase ? a.tipoClase.nombre : ""}${libre ? "" : ", ocupado"}`;
+                return pasillo + `<button class="${clases.join(" ")}" ${libre ? "" : "disabled"}
+                                    title="${escapar(descripcion)}" aria-label="${escapar(descripcion)}"
+                                    onclick="elegirAsiento(${a.idAsiento})">${escapar(letra)}</button>`;
+            }).join("");
+            return `<div class="fila-asientos"><span class="numero-fila">${fila}</span>${celdas}</div>`;
+        }).join("");
+
+        let detalle;
+        if (venta.asiento) {
+            const a = venta.asiento;
+            const ubicacion = a.ubicacion ? a.ubicacion.charAt(0) + a.ubicacion.slice(1).toLowerCase() : "";
+            detalle = `
+                <div class="detalle-asiento">
+                    <div>
+                        <strong>Asiento ${escapar(a.numeroAsiento)}</strong>
+                        <span class="secundario">${escapar(a.tipoClase ? a.tipoClase.nombre : "")}${ubicacion ? ", " + escapar(ubicacion) : ""}</span>
+                        <span class="precio-grande">${dinero(precioEstimado(venta.vuelo, a))}</span>
+                    </div>
+                    <button class="boton boton-principal" id="boton-agregar" onclick="agregarBoleto()">Agregar boleto</button>
+                </div>`;
+        } else {
+            detalle = `<p class="ayuda">Toca un asiento libre para ver su precio.</p>`;
+        }
+
+        contenedor.innerHTML = `
+            <p><strong>${codigoVuelo(venta.vuelo.idVuelo)}</strong>,
+               ${venta.vuelo.ruta.aeropuertoOrigen} - ${venta.vuelo.ruta.aeropuertoDestino}, sale el ${fechaHora(venta.vuelo.fechaSalida)}
+               <span class="secundario">Quedan ${venta.disponibles.size} asientos libres</span></p>
+            <div class="leyenda">
+                <span><i></i>Libre</span>
+                <span><i class="ejecutiva"></i>Ejecutiva</span>
+                <span><i class="ocupado"></i>Ocupado</span>
+                <span><i class="elegido-asiento"></i>Elegido</span>
+            </div>
+            <div class="tabla-contenedor"><div class="cabina">${mapa}</div></div>
+            ${detalle}`;
+    }
+
+    function elegirAsiento(id) {
+        venta.asiento = venta.asientos.find(a => a.idAsiento === id);
+        pintarMapa();
+    }
+
+    // Crea la reserva (solo la primera vez) y emite el boleto
+    async function agregarBoleto() {
+        const boton = document.getElementById("boton-agregar");
+        boton.disabled = true;
+        try {
+            if (!venta.reserva) {
+                venta.reserva = await api("reservas", "/reservas", "POST", {
+                    idPasajero: venta.pasajero.idPasajero,
+                    idEmpleado: sesion.idEmpleado
+                });
+            }
+            const boleto = await api("reservas", "/boletos", "POST", {
+                idReserva: venta.reserva.idReserva,
+                idVuelo: venta.vuelo.idVuelo,
+                idAsiento: venta.asiento.idAsiento,
+                usuario: sesion.usuario
+            });
+            venta.boletos.push({ boleto, vuelo: venta.vuelo, asiento: venta.asiento });
+            venta.reserva = await api("reservas", `/reservas/${venta.reserva.idReserva}`);
+            mostrarMensaje(`Boleto ${boleto.codigoBoleto} emitido. Asiento ${venta.asiento.numeroAsiento}.`);
+            venta.asiento = null;
+            pintarPasajeros();
+            await cargarAsientos();
+            pintarCobro();
+            document.getElementById("paso-cobro").scrollIntoView({ behavior: "smooth", block: "start" });
+        } catch (e) {
+            mostrarMensaje(e.message, "error");
+            boton.disabled = false;
+        }
+    }
+
+    // ---------- Paso 4: pases de abordar y cobro ----------
+    function pintarCobro() {
+        const contenedor = document.getElementById("contenido-cobro");
+        const pases = venta.boletos.map(b => paseDeAbordar({
+            boleto: b.boleto, vuelo: b.vuelo, asiento: b.asiento, pasajero: venta.pasajero, ciudades
+        })).join("");
+
+        let pie;
+        if (venta.pagada) {
+            pie = `
+                ${capitanDice(`Listo. La reserva <strong>#${venta.reserva.idReserva}</strong> quedo pagada. Buen viaje para ${escapar(venta.pasajero.nombres)}.`)}
+                <div class="acciones" style="margin-top: 1rem;">
+                    <button class="boton boton-principal" onclick="location.reload()">Nueva venta</button>
+                    <a class="boton boton-secundario" href="reservas.html?id=${venta.reserva.idReserva}">Ver reserva</a>
+                </div>`;
+        } else {
+            pie = `
+                <div class="cobro">
+                    <div class="total-venta">Total de la reserva #${venta.reserva.idReserva}
+                        <strong>${dinero(venta.reserva.total)}</strong></div>
+                    <div class="campo">
+                        <label for="metodo">Metodo de pago</label>
+                        <select id="metodo">
+                            <option value="EFECTIVO">Efectivo</option>
+                            <option value="TARJETA">Tarjeta</option>
+                            <option value="TRANSFERENCIA">Transferencia</option>
+                        </select>
+                    </div>
+                    <div class="acciones">
+                        <button class="boton boton-peligro" onclick="cancelarReserva()">Cancelar reserva</button>
+                        <button class="boton boton-principal" id="boton-cobrar" onclick="cobrar()">Cobrar ${dinero(venta.reserva.total)}</button>
+                    </div>
+                </div>
+                <p class="ayuda">Puedes agregar otro boleto eligiendo otro vuelo o asiento antes de cobrar.</p>`;
+        }
+        contenedor.innerHTML = `<div class="pases">${pases}</div>${pie}`;
+        actualizarPasos();
+    }
+
+    async function cobrar() {
+        const boton = document.getElementById("boton-cobrar");
+        boton.disabled = true;
+        try {
+            await api("pagos", "/pagos", "POST", {
+                idReserva: venta.reserva.idReserva,
+                monto: venta.reserva.total,
+                metodoPago: document.getElementById("metodo").value
+            });
+            venta.pagada = true;
+            venta.boletos.forEach(b => b.boleto.estado = "PAGADO");
+            venta.reserva = await api("reservas", `/reservas/${venta.reserva.idReserva}`);
+            mostrarMensaje("Pago registrado. Boletos pagados.");
+            document.getElementById("contenido-asiento").innerHTML = `<p class="ayuda">Venta terminada.</p>`;
+            pintarCobro();
+        } catch (e) {
+            mostrarMensaje(e.message, "error");
+            boton.disabled = false;
+        }
+    }
+
+    async function cancelarReserva() {
+        if (!confirm(`Cancelar la reserva #${venta.reserva.idReserva}? Se liberan sus asientos.`)) return;
+        try {
+            await api("reservas", `/reservas/${venta.reserva.idReserva}/cancelar`, "POST", { usuario: sesion.usuario });
+            mostrarMensaje("Reserva cancelada. Los asientos quedaron libres.");
+            setTimeout(() => location.reload(), 1200);
+        } catch (e) {
+            mostrarMensaje(e.message, "error");
+        }
+    }
+
+    // ---------- Eventos ----------
+    document.getElementById("buscar-pasajero").addEventListener("input", pintarPasajeros);
+    document.getElementById("filtro-origen").addEventListener("change", pintarVuelos);
+    document.getElementById("filtro-destino").addEventListener("change", pintarVuelos);
+    document.getElementById("filtro-fecha").addEventListener("change", pintarVuelos);
+
+    iniciar();
+</script>
+</body>
+</html>

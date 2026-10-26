@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Reservas y pagos - Sahur Airlines</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/estilos.css">
+    <link rel="stylesheet" href="css/boletos.css">
+</head>
+<body>
+<div class="app">
+    <aside class="menu" id="menu"></aside>
+
+    <main class="contenido">
+        <div class="encabezado">
+            <div>
+                <h1>Reservas y pagos</h1>
+                <p>Consulta reservas, cobra, cancela, reembolsa y revisa el historial de cada boleto.</p>
+            </div>
+            <a class="boton boton-principal" href="vender.html">Vender boleto</a>
+        </div>
+
+        <!-- Resumen de ventas que da el capitan -->
+        <div class="informe" id="informe"></div>
+
+        <!-- Lista de reservas -->
+        <section class="panel">
+            <div class="filtros">
+                <div class="campo">
+                    <label for="buscar">Buscar</label>
+                    <input id="buscar" type="search" placeholder="Numero de reserva, pasajero o documento">
+                </div>
+                <div class="campo">
+                    <label for="filtro-estado">Estado</label>
+                    <select id="filtro-estado">
+                        <option value="">Todas</option>
+                        <option value="PENDIENTE">Pendientes de pago</option>
+                        <option value="PAGADA">Pagadas</option>
+                        <option value="CANCELADA">Canceladas</option>
+                    </select>
+                </div>
+            </div>
+            <div class="tabla-contenedor">
+                <table>
+                    <thead>
+                        <tr><th>Reserva</th><th>Pasajero</th><th>Vendedor</th><th>Fecha</th><th>Total</th><th>Estado</th><th></th></tr>
+                    </thead>
+                    <tbody id="filas"><tr><td colspan="7" class="vacio">Cargando...</td></tr></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Detalle de la reserva elegida -->
+        <section class="panel" id="detalle" hidden></section>
+
+        <!-- Historial de un boleto -->
+        <section class="panel" id="historial" hidden></section>
+    </main>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/boletos.js"></script>
+<script>
+    pintarMenu("reservas.html");
+    const sesion = obtenerSesion();
+
+    // Datos de los otros servicios, guardados por id para buscarlos rapido
+    let reservas = [];
+    const pasajeros = {};
+    const empleados = {};
+    const vuelos = {};
+    const asientos = {};
+    const ciudades = {};
+
+    let reservaActual = null;   // la reserva que se esta viendo
+    let boletosActuales = [];
+    let pagosActuales = [];
+
+    // ---------- Carga inicial ----------
+    async function iniciar() {
+        try {
+            const [listaPasajeros, listaEmpleados, listaVuelos, listaAsientos, aeropuertos] = await Promise.all([
+                api("pasajeros", "/pasajeros"),
+                api("empleados", "/empleados"),
+                api("vuelos", "/vuelos"),
+                api("vuelos", "/asientos"),
+                api("vuelos", "/aeropuertos")
+            ]);
+            listaPasajeros.forEach(p => pasajeros[p.idPasajero] = p);
+            listaEmpleados.forEach(e => empleados[e.idEmpleado] = e);
+            listaVuelos.forEach(v => vuelos[v.idVuelo] = v);
+            listaAsientos.forEach(a => asientos[a.idAsiento] = a);
+            aeropuertos.forEach(a => ciudades[a.codigoIata] = a.ciudad);
+
+            await cargarReservas();
+
+            // Si vienen de otra pantalla con ?id=5, abrir esa reserva
+            const id = new URLSearchParams(location.search).get("id");
+            if (id) verReserva(Number(id));
+        } catch (e) {
+            document.getElementById("filas").innerHTML = filaVacia(e.message, 7);
+        }
+    }
+
+    async function cargarReservas() {
+        reservas = (await api("reservas", "/reservas")).sort((a, b) => b.idReserva - a.idReserva);
+        pintarInforme();
+        pintarLista();
+    }
+
+    function nombrePasajero(id) {
+        const p = pasajeros[id];
+        return p ? `${p.nombres || ""} ${p.apellidos || ""}`.trim() || p.numeroDocumento : `Pasajero ${id}`;
+    }
+
+    // ---------- Resumen del capitan ----------
+    function pintarInforme() {
+        const cuenta = estado => reservas.filter(r => r.estado === estado).length;
+        const vendido = reservas.filter(r => r.estado === "PAGADA")
+                                .reduce((suma, r) => suma + Number(r.total), 0);
+        const porCobrar = reservas.filter(r => r.estado === "PENDIENTE")
+                                  .reduce((suma, r) => suma + Number(r.total), 0);
+        document.getElementById("informe").innerHTML = capitanDice(
+            `Llevamos <strong>${reservas.length}</strong> reservas: ${cuenta("PAGADA")} pagadas, ` +
+            `${cuenta("PENDIENTE")} pendientes y ${cuenta("CANCELADA")} canceladas. ` +
+            `Vendido: <strong>${dinero(vendido)}</strong>. Por cobrar: <strong>${dinero(porCobrar)}</strong>.`
+        );
+    }
+
+    // ---------- Lista ----------
+    function pintarLista() {
+        const texto = document.getElementById("buscar").value.trim().toLowerCase().replace("#", "");
+        const estado = document.getElementById("filtro-estado").value;
+
+        const lista = reservas.filter(r => {
+            const p = pasajeros[r.idPasajero] || {};
+            const busqueda = `${r.idReserva} ${p.nombres || ""} ${p.apellidos || ""} ${p.numeroDocumento || ""}`.toLowerCase();
+            return (!estado || r.estado === estado) && (!texto || busqueda.includes(texto));
+        });
+
+        const cuerpo = document.getElementById("filas");
+        if (lista.length === 0) {
+            cuerpo.innerHTML = filaVacia(reservas.length === 0
+                ? "Todavia no hay reservas. Haz la primera venta en Vender boleto."
+                : "Ninguna reserva coincide con la busqueda.", 7);
+            return;
+        }
+        cuerpo.innerHTML = lista.map(r => `
+            <tr class="${reservaActual && reservaActual.idReserva === r.idReserva ? "seleccionada" : ""}">
+                <td class="codigo">#${r.idReserva}</td>
+                <td>${escapar(nombrePasajero(r.idPasajero))}</td>
+                <td>${escapar(empleados[r.idEmpleado] ? empleados[r.idEmpleado].usuario : r.idEmpleado)}</td>
+                <td>${fechaHora(r.fechaReserva)}</td>
+                <td>${dinero(r.total)}</td>
+                <td>${etiquetaEstado(r.estado)}</td>
+                <td class="acciones-tabla">
+                    <button class="boton boton-secundario boton-chico" onclick="verReserva(${r.idReserva})">Ver</button>
+                </td>
+            </tr>`).join("");
+    }
+
+    // ---------- Detalle ----------
+    async function verReserva(id) {
+        const detalle = document.getElementById("detalle");
+        document.getElementById("historial").hidden = true;
+        detalle.hidden = false;
+        detalle.innerHTML = `<p class="ayuda">Cargando reserva #${id}...</p>`;
+        try {
+            const [reserva, boletos, pagos] = await Promise.all([
+                api("reservas", `/reservas/${id}`),
+                api("reservas", `/reservas/${id}/boletos`),
+                api("pagos", `/pagos/reserva/${id}`)
+            ]);
+            reservaActual = reserva;
+            boletosActuales = boletos;
+            pagosActuales = pagos;
+            pintarDetalle();
+            pintarLista();
+            detalle.scrollIntoView({ behavior: "smooth", block: "start" });
+        } catch (e) {
+            detalle.innerHTML = capitanDice(escapar(e.message));
+        }
+    }
+
+    function pintarDetalle() {
+        const r = reservaActual;
+        const pasajero = pasajeros[r.idPasajero];
+        const vendedor = empleados[r.idEmpleado];
+
+        // Pases de abordar con sus acciones
+        const pases = boletosActuales.length === 0
+            ? capitanDice("Esta reserva no tiene boletos.")
+            : boletosActuales.map(b => {
+                const acciones = [];
+                acciones.push(`<button class="boton boton-secundario boton-chico" onclick="verHistorial(${b.idBoleto})">Ver historial</button>`);
+                if (b.estado === "PAGADO") {
+                    acciones.push(`<button class="boton boton-secundario boton-chico" onclick="cambiarEstado(${b.idBoleto}, 'USADO')">Marcar como abordado</button>`);
+                }
+                if (b.estado === "EMITIDO" || b.estado === "PAGADO") {
+                    acciones.push(`<button class="boton boton-peligro boton-chico" onclick="cambiarEstado(${b.idBoleto}, 'CANCELADO')">Cancelar boleto</button>`);
+                }
+                return `<div>
+                            ${paseDeAbordar({ boleto: b, vuelo: vuelos[b.idVuelo], asiento: asientos[b.idAsiento], pasajero, ciudades })}
+                            <div class="acciones">${acciones.join("")}</div>
+                        </div>`;
+            }).join("");
+
+        // Pagos de la reserva
+        const filasPagos = pagosActuales.length === 0
+            ? `<tr><td colspan="6" class="ayuda">Sin pagos registrados.</td></tr>`
+            : pagosActuales.map(p => `
+                <tr>
+                    <td class="codigo">#${p.idPago}</td>
+                    <td>${fechaHora(p.fechaPago)}</td>
+                    <td>${escapar(p.metodoPago ? p.metodoPago.charAt(0) + p.metodoPago.slice(1).toLowerCase() : "")}</td>
+                    <td>${dinero(p.monto)}</td>
+                    <td>${etiquetaEstado(p.estado)}</td>
+                    <td class="acciones-tabla">${p.estado === "COMPLETADO" && r.estado === "CANCELADA"
+                        ? `<button class="boton boton-peligro boton-chico" onclick="reembolsar(${p.idPago})">Reembolsar</button>` : ""}</td>
+                </tr>`).join("");
+
+        // Lo que se puede hacer segun el estado de la reserva
+        let acciones = "";
+        if (r.estado === "PENDIENTE") {
+            acciones = `
+                <div class="cobro">
+                    <div class="total-venta">Total por cobrar <strong>${dinero(r.total)}</strong></div>
+                    <div class="campo">
+                        <label for="metodo">Metodo de pago</label>
+                        <select id="metodo">
+                            <option value="EFECTIVO">Efectivo</option>
+                            <option value="TARJETA">Tarjeta</option>
+                            <option value="TRANSFERENCIA">Transferencia</option>
+                        </select>
+                    </div>
+                    <div class="acciones">
+                        <button class="boton boton-peligro" onclick="cancelarReserva()">Cancelar reserva</button>
+                        <button class="boton boton-principal" id="boton-cobrar" onclick="cobrar()" ${Number(r.total) > 0 ? "" : "disabled"}>Cobrar ${dinero(r.total)}</button>
+                    </div>
+                </div>`;
+        } else if (r.estado === "PAGADA") {
+            const usados = boletosActuales.some(b => b.estado === "USADO");
+            acciones = usados
+                ? `<p class="ayuda">La reserva tiene boletos abordados, ya no se puede cancelar.</p>`
+                : `<div class="acciones"><button class="boton boton-peligro" onclick="cancelarReserva()">Cancelar reserva</button></div>
+                   <p class="ayuda">Al cancelarla podras reembolsar el pago.</p>`;
+        } else {
+            const porReembolsar = pagosActuales.some(p => p.estado === "COMPLETADO");
+            acciones = capitanDice(porReembolsar
+                ? "Esta reserva esta cancelada y su pago sigue completado. Usa Reembolsar en la tabla de pagos para devolver el dinero."
+                : "Esta reserva esta cancelada. Sus asientos ya quedaron libres.");
+        }
+
+        document.getElementById("detalle").innerHTML = `
+            <div class="encabezado">
+                <div>
+                    <h2>Reserva #${r.idReserva} ${etiquetaEstado(r.estado)}</h2>
+                    <p>${escapar(nombrePasajero(r.idPasajero))}${pasajero ? ", documento " + escapar(pasajero.numeroDocumento) : ""}
+                       <span class="secundario">Vendida por ${escapar(vendedor ? vendedor.usuario : "empleado " + r.idEmpleado)}, ${fechaHora(r.fechaReserva)}</span></p>
+                </div>
+                <button class="boton boton-secundario boton-chico" onclick="cerrarDetalle()">Cerrar</button>
+            </div>
+
+            <h3>Boletos</h3>
+            <div class="pases">${pases}</div>
+
+            <h3>Pagos</h3>
+            <div class="tabla-contenedor" style="margin-bottom: 1.25rem;">
+                <table>
+                    <thead><tr><th>Pago</th><th>Fecha</th><th>Metodo</th><th>Monto</th><th>Estado</th><th></th></tr></thead>
+                    <tbody>${filasPagos}</tbody>
+                </table>
+            </div>
+
+            ${acciones}`;
+    }
+
+    function cerrarDetalle() {
+        reservaActual = null;
+        document.getElementById("detalle").hidden = true;
+        document.getElementById("historial").hidden = true;
+        history.replaceState(null, "", "reservas.html");
+        pintarLista();
+    }
+
+    // Vuelve a leer la reserva y la lista despues de un cambio
+    async function refrescar() {
+        const id = reservaActual.idReserva;
+        await cargarReservas();
+        await verReserva(id);
+    }
+
+    // ---------- Acciones ----------
+    async function cobrar() {
+        const boton = document.getElementById("boton-cobrar");
+        boton.disabled = true;
+        try {
+            await api("pagos", "/pagos", "POST", {
+                idReserva: reservaActual.idReserva,
+                monto: reservaActual.total,
+                metodoPago: document.getElementById("metodo").value
+            });
+            mostrarMensaje(`Pago registrado. Reserva #${reservaActual.idReserva} pagada.`);
+            await refrescar();
+        } catch (e) {
+            mostrarMensaje(e.message, "error");
+            boton.disabled = false;
+        }
+    }
+
+    async function cancelarReserva() {
+        if (!confirm(`Cancelar la reserva #${reservaActual.idReserva}? Se cancelan todos sus boletos y se liberan los asientos.`)) return;
+        try {
+            await api("reservas", `/reservas/${reservaActual.idReserva}/cancelar`, "POST", { usuario: sesion.usuario });
+            mostrarMensaje(`Reserva #${reservaActual.idReserva} cancelada.`);
+            await refrescar();
+        } catch (e) {
+            mostrarMensaje(e.message, "error");
+        }
+    }
+
+    async function cambiarEstado(idBoleto, estado) {
+        const b = boletosActuales.find(x => x.idBoleto === idBoleto);
+        const pregunta = estado === "CANCELADO"
+            ? `Cancelar el boleto ${b.codigoBoleto}? Su asiento quedara libre.`
+            : `Marcar el boleto ${b.codigoBoleto} como abordado?`;
+        if (!confirm(pregunta)) return;
+        try {
+            await api("reservas", `/boletos/${idBoleto}/estado`, "POST", { estado, usuario: sesion.usuario });
+            mostrarMensaje(estado === "CANCELADO" ? `Boleto ${b.codigoBoleto} cancelado.` : `Boleto ${b.codigoBoleto} abordado.`);
+            await refrescar();
+        } catch (e) {
+            mostrarMensaje(e.message, "error");
+        }
+    }
+
+    async function reembolsar(idPago) {
+        if (!confirm(`Reembolsar el pago #${idPago}?`)) return;
+        try {
+            await api("pagos", `/pagos/${idPago}/reembolsar`, "POST");
+            mostrarMensaje(`Pago #${idPago} reembolsado.`);
+            await refrescar();
+        } catch (e) {
+            mostrarMensaje(e.message, "error");
+        }
+    }
+
+    // ---------- Historial de un boleto ----------
+    async function verHistorial(idBoleto) {
+        const panel = document.getElementById("historial");
+        const b = boletosActuales.find(x => x.idBoleto === idBoleto);
+        panel.hidden = false;
+        panel.innerHTML = `<p class="ayuda">Cargando historial...</p>`;
+        try {
+            const cambios = await api("reservas", `/boletos/${idBoleto}/historial`);
+            const filas = cambios.map(h => `
+                <tr>
+                    <td>${fechaHora(h.fechaCambio)}</td>
+                    <td>${h.estadoAnterior ? etiquetaEstado(h.estadoAnterior) + " a " : "Se emitio como "}${etiquetaEstado(h.estadoNuevo)}</td>
+                    <td>${escapar(h.usuarioResponsable)}</td>
+                </tr>`).join("");
+            panel.innerHTML = `
+                <div class="encabezado">
+                    <h2>Historial del boleto ${escapar(b.codigoBoleto)}</h2>
+                    <button class="boton boton-secundario boton-chico" onclick="document.getElementById('historial').hidden = true">Cerrar</button>
+                </div>
+                <div class="tabla-contenedor">
+                    <table>
+                        <thead><tr><th>Fecha</th><th>Cambio</th><th>Responsable</th></tr></thead>
+                        <tbody>${filas}</tbody>
+                    </table>
+                </div>`;
+            panel.scrollIntoView({ behavior: "smooth", block: "start" });
+        } catch (e) {
+            panel.innerHTML = capitanDice(escapar(e.message));
+        }
+    }
+
+    // ---------- Eventos ----------
+    document.getElementById("buscar").addEventListener("input", pintarLista);
+    document.getElementById("filtro-estado").addEventListener("change", pintarLista);
+
+    iniciar();
+</script>
+</body>
+</html>

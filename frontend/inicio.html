@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Inicio - Sahur Airlines</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/estilos.css">
+</head>
+<body>
+<div class="app">
+    <aside class="menu" id="menu"></aside>
+
+    <main class="contenido">
+        <div class="encabezado">
+            <h1 id="saludo">Hola</h1>
+            <div class="acciones">
+                <a class="boton boton-principal" href="vender.html">Vender boleto</a>
+                <a class="boton boton-secundario" href="pasajeros.html">Registrar pasajero</a>
+            </div>
+        </div>
+
+        <!-- Resumen del dia que da el capitan -->
+        <div class="informe" id="informe"></div>
+
+        <section class="panel">
+            <h2>Vuelos a la venta</h2>
+            <div class="tabla-contenedor">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Vuelo</th><th>Ruta</th><th>Salida</th><th>Llegada</th>
+                            <th>Precio base</th><th>Asientos libres</th><th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody id="filas-vuelos"><tr><td colspan="7" class="vacio">Cargando...</td></tr></tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="panel">
+            <h2>Reservas pendientes de pago</h2>
+            <div class="tabla-contenedor">
+                <table>
+                    <thead>
+                        <tr><th>Reserva</th><th>Pasajero</th><th>Fecha</th><th>Total</th><th></th></tr>
+                    </thead>
+                    <tbody id="filas-pendientes"><tr><td colspan="5" class="vacio">Cargando...</td></tr></tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+</div>
+
+<script src="js/api.js"></script>
+<script>
+    pintarMenu("inicio.html");
+
+    const sesion = obtenerSesion();
+    const hora = new Date().getHours();
+    const saludo = hora < 12 ? "Buenos dias" : hora < 19 ? "Buenas tardes" : "Buenas noches";
+    document.getElementById("saludo").textContent = `${saludo}, ${sesion ? sesion.usuario : ""}`;
+    document.getElementById("informe").innerHTML = capitanDice("Revisando los vuelos de hoy...");
+
+    // El capitan resume cuantos vuelos hay a la venta y cuantas reservas faltan por cobrar
+    function pintarInforme(cantidadVuelos, pendientes) {
+        const vuelos = cantidadVuelos === 1 ? "1 vuelo a la venta" : `${cantidadVuelos} vuelos a la venta`;
+        let cobro;
+        if (pendientes.length === 0) {
+            cobro = "todas las reservas estan cobradas";
+        } else {
+            const total = pendientes.reduce((suma, r) => suma + Number(r.total), 0);
+            cobro = (pendientes.length === 1 ? "1 reserva espera pago" : `${pendientes.length} reservas esperan pago`)
+                    + ` por un total de <strong>${dinero(total)}</strong>`;
+        }
+        document.getElementById("informe").innerHTML =
+            capitanDice(`Hoy hay <strong>${vuelos}</strong> y ${cobro}.`);
+    }
+
+    async function cargarVuelos() {
+        const cuerpo = document.getElementById("filas-vuelos");
+        try {
+            const vuelos = await api("vuelos", "/vuelos/disponibles");
+            vuelos.sort((a, b) => a.fechaSalida.localeCompare(b.fechaSalida));
+            if (vuelos.length === 0) {
+                cuerpo.innerHTML = filaVacia("No hay vuelos a la venta. Crea uno en la pantalla Vuelos.", 7);
+                return 0;
+            }
+            // Cuantos asientos quedan en cada vuelo (lo calcula reservas-service)
+            const libres = await Promise.all(vuelos.map(v =>
+                api("reservas", `/boletos/vuelo/${v.idVuelo}/asientos-disponibles`).then(l => l.length).catch(() => "-")
+            ));
+            cuerpo.innerHTML = vuelos.map((v, i) => `
+                <tr>
+                    <td class="codigo">${codigoVuelo(v.idVuelo)}</td>
+                    <td class="codigo">${v.ruta.aeropuertoOrigen} - ${v.ruta.aeropuertoDestino}</td>
+                    <td>${fechaHora(v.fechaSalida)}</td>
+                    <td>${fechaHora(v.fechaLlegada)}</td>
+                    <td>${dinero(v.precioBase)}</td>
+                    <td>${libres[i]}</td>
+                    <td>${etiquetaEstado(v.estado)}</td>
+                </tr>`).join("");
+            return vuelos.length;
+        } catch (e) {
+            cuerpo.innerHTML = filaVacia(e.message, 7);
+            return 0;
+        }
+    }
+
+    async function cargarPendientes() {
+        const cuerpo = document.getElementById("filas-pendientes");
+        try {
+            const [reservas, pasajeros] = await Promise.all([
+                api("reservas", "/reservas"),
+                api("pasajeros", "/pasajeros")
+            ]);
+            const nombre = {};
+            pasajeros.forEach(p => nombre[p.idPasajero] = `${p.nombres || ""} ${p.apellidos || ""}`.trim() || p.numeroDocumento);
+
+            const pendientes = reservas.filter(r => r.estado === "PENDIENTE")
+                                       .sort((a, b) => b.idReserva - a.idReserva);
+            if (pendientes.length === 0) {
+                cuerpo.innerHTML = filaVacia("No hay reservas pendientes de pago. Todo esta cobrado.", 5);
+                return pendientes;
+            }
+            cuerpo.innerHTML = pendientes.map(r => `
+                <tr>
+                    <td class="codigo">#${r.idReserva}</td>
+                    <td>${escapar(nombre[r.idPasajero] || "Pasajero " + r.idPasajero)}</td>
+                    <td>${fechaHora(r.fechaReserva)}</td>
+                    <td>${dinero(r.total)}</td>
+                    <td class="acciones-tabla">
+                        <a class="boton boton-secundario boton-chico" href="reservas.html?id=${r.idReserva}">Ver reserva</a>
+                    </td>
+                </tr>`).join("");
+            return pendientes;
+        } catch (e) {
+            cuerpo.innerHTML = filaVacia(e.message, 5);
+            return [];
+        }
+    }
+
+    Promise.all([cargarVuelos(), cargarPendientes()])
+        .then(([cantidadVuelos, pendientes]) => pintarInforme(cantidadVuelos, pendientes));
+</script>
+</body>
+</html>

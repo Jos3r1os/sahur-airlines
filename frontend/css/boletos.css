@@ -1,0 +1,281 @@
+/* ============================================================
+   Estilos de la venta: pasos, mapa de asientos y pase de abordar
+   (se usa en vender.html y reservas.html)
+   ============================================================ */
+
+/* ---------- Pasos de la venta ---------- */
+
+.paso { position: relative; }
+
+.paso-titulo {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    margin-bottom: 1rem;
+}
+.paso-titulo h2 { margin: 0; }
+
+/* Numero del paso (la venta si es una secuencia) */
+.paso-numero {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-family: var(--letra-titulo);
+    font-weight: 700;
+    font-size: 1.15rem;
+    background: var(--linea);
+    color: var(--gris);
+    flex-shrink: 0;
+}
+.paso.activo .paso-numero { background: var(--dorado); color: var(--marino); }
+.paso.listo .paso-numero { background: var(--marino); color: #fff; }
+
+.paso.bloqueado { opacity: .55; }
+.paso.bloqueado .paso-contenido { pointer-events: none; }
+
+/* Resumen de lo que ya se eligio en un paso */
+.elegido {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    background: var(--fondo);
+    border-radius: 6px;
+    padding: .7rem 1rem;
+    flex-wrap: wrap;
+}
+.elegido strong { font-size: 1.05rem; }
+
+.filtros {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0 1rem;
+}
+
+tr.seleccionada td { background: #FBF1DA; }
+
+/* ---------- Mapa de asientos ---------- */
+
+.cabina {
+    display: inline-block;
+    background: var(--fondo);
+    border: 2px solid var(--linea);
+    border-radius: 60px 60px 14px 14px;  /* nariz del avion arriba */
+    padding: 2.5rem 1.25rem 1.25rem;
+    margin-bottom: 1rem;
+}
+
+.fila-asientos {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    margin-bottom: .4rem;
+}
+
+.numero-fila {
+    width: 1.6rem;
+    text-align: center;
+    font-family: var(--letra-titulo);
+    font-weight: 600;
+    color: var(--gris);
+}
+
+.pasillo { width: 1.4rem; }
+
+.asiento {
+    width: 46px;
+    height: 46px;
+    border-radius: 8px 8px 4px 4px;
+    border: 2px solid #9FB0C7;
+    background: #fff;
+    color: var(--marino);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+}
+.asiento:hover:not(:disabled) { border-color: var(--marino); }
+.asiento.ejecutiva { border-color: var(--dorado); background: #FFF8E8; }
+.asiento.ocupado {
+    background: #D5DCE6;
+    border-color: #D5DCE6;
+    color: #8A97A8;
+    cursor: not-allowed;
+    text-decoration: line-through;
+}
+.asiento.elegido-asiento {
+    background: var(--marino);
+    border-color: var(--marino);
+    color: #fff;
+}
+.asiento-vacio { width: 46px; height: 46px; }
+
+.leyenda {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    font-size: .9rem;
+    color: var(--gris);
+    margin-bottom: 1rem;
+}
+.leyenda span { display: inline-flex; align-items: center; gap: .4rem; }
+.leyenda i {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    border: 2px solid #9FB0C7;
+    background: #fff;
+    display: inline-block;
+}
+.leyenda i.ejecutiva { border-color: var(--dorado); background: #FFF8E8; }
+.leyenda i.ocupado { background: #D5DCE6; border-color: #D5DCE6; }
+.leyenda i.elegido-asiento { background: var(--marino); border-color: var(--marino); }
+
+.detalle-asiento {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    border-top: 1px solid var(--linea);
+    padding-top: 1rem;
+}
+.precio-grande {
+    font-family: var(--letra-titulo);
+    font-size: 1.8rem;
+    font-weight: 700;
+}
+
+/* ============================================================
+   Pase de abordar
+   ============================================================ */
+
+.pases { display: grid; gap: 1rem; margin-bottom: 1.25rem; }
+
+.pase {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 190px;
+    background: var(--marino);
+    color: #fff;
+    border-radius: 12px;
+    overflow: hidden;
+    position: relative;
+}
+
+.pase-cuerpo { padding: 1.1rem 1.4rem 1.2rem; }
+
+.pase-marca {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--letra-titulo);
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: var(--dorado);
+    margin-bottom: .6rem;
+}
+.pase-marca span { color: #8FA3C2; font-weight: 500; }
+
+.pase-ruta {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: .9rem;
+}
+.pase-ruta b {
+    display: block;
+    font-family: var(--letra-titulo);
+    font-size: 2.6rem;
+    line-height: 1;
+    letter-spacing: .04em;
+}
+.pase-ruta small { color: #B7C3D6; font-size: .85rem; }
+.pase-ruta .avion { font-size: 1.6rem; color: var(--dorado); }
+
+.pase-datos {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: .6rem 1rem;
+    margin: 0;
+}
+.pase-datos dt { color: #8FA3C2; font-size: .8rem; }
+.pase-datos dd {
+    margin: 0;
+    font-family: var(--letra-titulo);
+    font-size: 1.15rem;
+    font-weight: 600;
+}
+
+/* Talon: separado con linea punteada como un boleto real */
+.pase-talon {
+    position: relative;
+    margin: 0;
+    background: var(--marino-claro);
+    border-left: 2px dashed #4A6285;
+    padding: 1.1rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+    align-items: flex-start;
+}
+.pase-talon dt { color: #8FA3C2; font-size: .8rem; }
+.pase-talon dd {
+    margin: 0 0 .3rem;
+    font-family: var(--letra-titulo);
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+/* Sello del capitan cuando el boleto esta pagado */
+.sello {
+    margin-top: auto;
+    display: flex;
+    align-items: center;
+    gap: .45rem;
+    border: 3px solid var(--dorado);
+    color: var(--dorado);
+    border-radius: 999px;
+    padding: .25rem .8rem .25rem .25rem;
+    transform: rotate(-7deg);
+    font-family: var(--letra-titulo);
+    font-weight: 700;
+    font-size: 1.25rem;
+}
+.sello img {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: 2px solid var(--dorado);
+}
+
+/* Pase cancelado: se apaga */
+.pase.cancelado { filter: grayscale(1); opacity: .6; }
+
+/* ---------- Cobro ---------- */
+
+.cobro {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    border-top: 1px solid var(--linea);
+    padding-top: 1rem;
+}
+.cobro .campo { margin-bottom: 0; min-width: 220px; }
+.total-venta { color: var(--gris); }
+.total-venta strong {
+    display: block;
+    color: var(--tinta);
+    font-family: var(--letra-titulo);
+    font-size: 2rem;
+    line-height: 1.1;
+}
+
+@media (max-width: 760px) {
+    .filtros { grid-template-columns: 1fr; }
+    .pase { grid-template-columns: 1fr; }
+    .pase-talon { border-left: none; border-top: 2px dashed #4A6285; }
+    .pase-datos { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .asiento, .asiento-vacio { width: 40px; height: 40px; }
+}

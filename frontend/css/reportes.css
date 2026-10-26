@@ -1,0 +1,94 @@
+/* ============================================================
+   Consultas y reportes (se usa en reportes.html)
+   ============================================================ */
+
+/* Filtros de fecha arriba de los reportes */
+.filtros {
+    display: flex;
+    gap: 0 1rem;
+    align-items: flex-end;
+    flex-wrap: wrap;
+}
+.filtros .campo { min-width: 170px; }
+.filtros .acciones { margin: 0 0 1rem; }
+
+/* Numeros grandes del resumen */
+.resumen {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+.dato {
+    background: var(--papel);
+    border: 1px solid var(--linea);
+    border-top: 4px solid var(--marino);
+    border-radius: 6px;
+    padding: 1rem 1.1rem;
+}
+.dato:first-child { border-top-color: var(--dorado); }
+.dato span { display: block; color: var(--gris); font-size: .9rem; }
+.dato strong {
+    display: block;
+    font-family: var(--letra-titulo);
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1.1;
+    white-space: nowrap;
+}
+.dato small { color: var(--gris); font-size: .85rem; }
+
+/* Columnas de numeros alineadas a la derecha */
+th.num, td.num { text-align: right; white-space: nowrap; }
+
+/* Fila de totales al final de cada tabla */
+tfoot td {
+    font-weight: 600;
+    border-top: 2px solid var(--linea);
+    border-bottom: none;
+    background: var(--fondo);
+    white-space: nowrap;
+}
+tr:hover tfoot td { background: var(--fondo); }
+
+/* Barra de ocupacion de un vuelo */
+.ocupacion { display: flex; align-items: center; gap: .6rem; min-width: 150px; }
+.ocupacion .barra {
+    flex: 1;
+    height: 8px;
+    background: var(--linea);
+    border-radius: 999px;
+    overflow: hidden;
+}
+.ocupacion .barra i { display: block; height: 100%; background: var(--dorado); }
+.ocupacion span { font-size: .85rem; color: var(--gris); min-width: 3ch; text-align: right; }
+
+/* Selectores dentro de la barra de herramientas de cada reporte */
+.herramientas {
+    display: flex;
+    gap: 0 1rem;
+    align-items: flex-end;
+    justify-content: space-between;
+    flex-wrap: wrap;
+}
+.herramientas .campo { min-width: 200px; }
+.herramientas .acciones { margin: 0 0 1rem; }
+
+@media (max-width: 900px) {
+    .resumen { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 520px) {
+    .resumen { grid-template-columns: 1fr; }
+}
+
+/* ---------- Al imprimir: solo el reporte, sin menu ni botones ---------- */
+@media print {
+    body { background: #fff; }
+    .app { display: block; }
+    .menu, .pestanas, .filtros, .herramientas .acciones, .informe, .no-imprimir { display: none !important; }
+    .contenido { padding: 0; max-width: none; }
+    .panel, .dato { border-color: #999; break-inside: avoid; }
+    .solo-imprimir { display: block !important; }
+}
+.solo-imprimir { display: none; }

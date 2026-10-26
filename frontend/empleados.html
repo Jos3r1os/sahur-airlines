@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Empleados - Sahur Airlines</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/estilos.css">
+</head>
+<body>
+<div class="app">
+    <aside class="menu" id="menu"></aside>
+
+    <main class="contenido">
+        <div class="encabezado">
+            <div>
+                <h1>Empleados</h1>
+                <p>Registra a quienes venden boletos. Un empleado inactivo no puede iniciar sesion ni vender.</p>
+            </div>
+        </div>
+
+        <div id="sec-empleados"></div>
+    </main>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/crud.js"></script>
+<script>
+    pintarMenu("empleados.html");
+    const sesion = obtenerSesion();
+
+    const PUESTOS = ["Administrador", "Supervisor", "Vendedor"];
+
+    crearSeccion({
+        clave: "empleados", contenedor: "sec-empleados",
+        servicio: "empleados", ruta: "/empleados", id: "idEmpleado", nombre: "empleado",
+        vacio: "Todavia no hay empleados.",
+        buscar: e => `${e.usuario} ${e.nombres || ""} ${e.apellidos || ""} ${e.puesto || ""}`,
+        columnas: [
+            { titulo: "Usuario", valor: e => `<span class="codigo">${escapar(e.usuario)}</span>${e.idEmpleado === sesion.idEmpleado ? `<span class="secundario">Tu usuario</span>` : ""}` },
+            { titulo: "Nombre", valor: e => `${escapar(e.nombres)} ${escapar(e.apellidos)}<span class="secundario">${escapar(e.puesto)}</span>` },
+            { titulo: "Estado", valor: e => etiquetaEstado(e.estado) }
+        ],
+        campos: [
+            { id: "usuario", etiqueta: "Usuario", requerido: true },
+            { id: "password", etiqueta: "Contrasena", tipo: "password", requerido: true, soloAlCrear: true,
+              leer: () => "", ayuda: "Al editar, dejala vacia para no cambiarla." },
+            { id: "nombres", etiqueta: "Nombres", requerido: true },
+            { id: "apellidos", etiqueta: "Apellidos", requerido: true },
+            { id: "puesto", etiqueta: "Puesto", tipo: "select",
+              // Ademas de los puestos fijos, incluye los que ya tengan los empleados
+              opciones: () => [...new Set([...PUESTOS, ...(SECCIONES.empleados ? SECCIONES.empleados.lista.map(e => e.puesto).filter(Boolean) : [])])]
+                                .map(p => ({ valor: p, texto: p })) },
+            { id: "estado", etiqueta: "Estado", tipo: "select",
+              opciones: () => ["ACTIVO", "INACTIVO"].map(e => ({ valor: e, texto: textoEstado(e) })) }
+        ],
+        aDatos: (v, editando) => {
+            // Que nadie se desactive a si mismo y se quede fuera del sistema
+            if (editando && SECCIONES.empleados.editando === sesion.idEmpleado && v.estado === "INACTIVO") {
+                throw new Error("No puedes desactivar tu propio usuario.");
+            }
+            const datos = { usuario: v.usuario, nombres: v.nombres, apellidos: v.apellidos, puesto: v.puesto, estado: v.estado };
+            if (v.password) datos.password = v.password;
+            return datos;
+        },
+        antesDeEliminar: e => e.idEmpleado === sesion.idEmpleado ? "No puedes eliminar tu propio usuario." : null
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,458 @@
+/* ============================================================
+   Sahur Airlines - estilos de todas las pantallas
+   La paleta sale del uniforme del Capitan Sahur:
+   azul marino del saco y dorado de sus insignias.
+   Tipografia tipo senalizacion de aeropuerto (Barlow).
+   ============================================================ */
+
+:root {
+    --marino: #13213A;        /* saco del capitan: menu y tablero */
+    --marino-claro: #213659;
+    --marino-hondo: #0A1528;
+    --dorado: #E3A82B;        /* insignias: acento unico */
+    --dorado-oscuro: #B98312;
+    --madera: #8A5A2B;        /* el capitan es de madera: detalles pequenos */
+    --fondo: #F2F4F7;
+    --papel: #FFFFFF;
+    --tinta: #1A2333;
+    --gris: #5A6A80;
+    --linea: #D8DFE9;
+    --ok: #2E8B57;
+    --error: #C0412C;
+
+    --letra: "Barlow", "Segoe UI", Arial, sans-serif;
+    --letra-titulo: "Barlow Condensed", "Arial Narrow", Arial, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body { margin: 0; }
+
+body {
+    font-family: var(--letra);
+    font-size: 16px;
+    line-height: 1.5;
+    color: var(--tinta);
+    background: var(--fondo);
+}
+
+h1, h2, h3 {
+    font-family: var(--letra-titulo);
+    font-weight: 600;
+    line-height: 1.15;
+    margin: 0 0 .5rem;
+}
+h1 { font-size: 2.25rem; }
+h2 { font-size: 1.5rem; }
+h3 { font-size: 1.2rem; }
+
+p { margin: 0 0 1rem; max-width: 70ch; }
+
+a { color: var(--marino-claro); }
+
+img { max-width: 100%; }
+
+/* Lo que tiene el atributo hidden siempre se oculta (aunque tenga una clase como .boton) */
+[hidden] { display: none !important; }
+
+:focus-visible {
+    outline: 3px solid var(--dorado);
+    outline-offset: 2px;
+}
+
+/* ============================================================
+   El capitan habla: cara redonda + globo de texto
+   ============================================================ */
+
+.capitan {
+    display: flex;
+    align-items: flex-start;
+    gap: .9rem;
+}
+
+.capitan img {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    border: 3px solid var(--dorado);
+    flex-shrink: 0;
+    object-fit: cover;
+    background: var(--marino);
+}
+
+.globo {
+    position: relative;
+    background: var(--papel);
+    border: 1px solid var(--linea);
+    border-radius: 10px;
+    padding: .75rem 1rem;
+    margin: .25rem 0 0;
+    max-width: 60ch;
+}
+/* Colita del globo apuntando al capitan */
+.globo::before {
+    content: "";
+    position: absolute;
+    left: -8px;
+    top: 16px;
+    width: 14px;
+    height: 14px;
+    background: var(--papel);
+    border-left: 1px solid var(--linea);
+    border-bottom: 1px solid var(--linea);
+    transform: rotate(45deg);
+}
+
+/* Version pequena para listas vacias */
+.vacio .capitan { justify-content: center; text-align: left; }
+.vacio .capitan img { width: 44px; height: 44px; border-width: 2px; }
+.vacio .globo { background: var(--fondo); }
+.vacio .globo::before { background: var(--fondo); }
+
+/* ============================================================
+   Estructura: menu lateral + contenido
+   ============================================================ */
+
+.app {
+    display: grid;
+    grid-template-columns: 240px minmax(0, 1fr);
+    min-height: 100vh;
+}
+
+.menu {
+    background: var(--marino);
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem 0;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+}
+
+.marca {
+    display: flex;
+    align-items: center;
+    gap: .7rem;
+    font-family: var(--letra-titulo);
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1;
+    padding: 0 1.25rem 1.5rem;
+}
+.marca img {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 2px solid var(--dorado);
+}
+.marca span { color: var(--dorado); display: block; }
+
+.menu nav { display: flex; flex-direction: column; }
+
+.menu nav a {
+    color: #C7D1E2;
+    text-decoration: none;
+    padding: .7rem 1.5rem;
+    border-left: 4px solid transparent;
+}
+.menu nav a:hover { color: #fff; background: var(--marino-claro); }
+.menu nav a.activa {
+    color: #fff;
+    border-left-color: var(--dorado);
+    background: var(--marino-claro);
+}
+
+.usuario {
+    margin-top: auto;
+    padding: 1rem 1.5rem 0;
+    border-top: 1px solid var(--marino-claro);
+    font-size: .9rem;
+    color: #C7D1E2;
+}
+.usuario strong { display: block; color: #fff; font-size: 1rem; }
+.usuario button {
+    margin-top: .6rem;
+    background: none;
+    border: 1px solid #4A6285;
+    color: #fff;
+    padding: .35rem .8rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font: inherit;
+}
+.usuario button:hover { border-color: var(--dorado); }
+
+.contenido {
+    padding: 2rem 2.5rem 3rem;
+    max-width: 1200px;
+    width: 100%;
+    min-width: 0;
+}
+
+.encabezado {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+}
+.encabezado p { color: var(--gris); margin: 0; }
+
+/* Resumen del capitan arriba de la pagina de inicio */
+.informe { margin-bottom: 1.75rem; }
+.informe .globo { font-size: 1.05rem; }
+
+/* ---------- Paneles ---------- */
+
+.panel {
+    background: var(--papel);
+    border: 1px solid var(--linea);
+    border-radius: 6px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.dos-columnas {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 340px;
+    gap: 1.5rem;
+    align-items: start;
+}
+
+/* ---------- Formularios ---------- */
+
+.campo { margin-bottom: 1rem; }
+
+.campo label {
+    display: block;
+    font-weight: 600;
+    font-size: .95rem;
+    margin-bottom: .3rem;
+}
+
+.campo input, .campo select {
+    width: 100%;
+    font: inherit;
+    padding: .6rem .7rem;
+    border: 1px solid #B8C3D3;
+    border-radius: 4px;
+    background: #fff;
+    color: var(--tinta);
+}
+.campo input:focus, .campo select:focus {
+    outline: none;
+    border-color: var(--marino-claro);
+    box-shadow: 0 0 0 3px rgba(227, 168, 43, .45);
+}
+
+.ayuda { font-size: .85rem; color: var(--gris); margin-top: .25rem; }
+.texto-error { color: var(--error); }
+
+.fila { display: grid; grid-template-columns: 1fr 1fr; gap: 0 1rem; }
+
+.acciones { display: flex; gap: .6rem; flex-wrap: wrap; margin-top: .5rem; }
+
+/* ---------- Botones ---------- */
+
+.boton {
+    font: inherit;
+    font-weight: 600;
+    padding: .6rem 1.1rem;
+    border-radius: 4px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+}
+.boton:disabled { opacity: .55; cursor: not-allowed; }
+
+.boton-principal { background: var(--dorado); color: var(--marino); }
+.boton-principal:hover:not(:disabled) { background: var(--dorado-oscuro); color: #fff; }
+
+.boton-secundario { background: #fff; color: var(--marino); border-color: #B8C3D3; }
+.boton-secundario:hover:not(:disabled) { border-color: var(--marino); }
+
+.boton-peligro { background: #fff; color: var(--error); border-color: #E3B5AC; }
+.boton-peligro:hover:not(:disabled) { background: var(--error); color: #fff; }
+
+.boton-chico { padding: .3rem .7rem; font-size: .9rem; }
+
+/* ---------- Tablas ---------- */
+
+.tabla-contenedor { overflow-x: auto; }
+
+table { width: 100%; border-collapse: collapse; font-size: .95rem; }
+
+th {
+    text-align: left;
+    font-weight: 600;
+    color: var(--gris);
+    border-bottom: 2px solid var(--linea);
+    padding: .6rem .7rem;
+    white-space: nowrap;
+}
+td {
+    border-bottom: 1px solid var(--linea);
+    padding: .6rem .7rem;
+    vertical-align: middle;
+}
+tr:hover td { background: #F7F9FC; }
+td.acciones-tabla { white-space: nowrap; text-align: right; }
+
+td.vacio { padding: 1.5rem .7rem; }
+tr:hover td.vacio { background: transparent; }
+
+.secundario { display: block; color: var(--gris); font-size: .85rem; }
+
+/* ---------- Estados (etiquetas de color) ---------- */
+
+.estado {
+    display: inline-block;
+    font-size: .8rem;
+    font-weight: 600;
+    padding: .15rem .55rem;
+    border-radius: 999px;
+    background: #E8EDF4;
+    color: var(--gris);
+    white-space: nowrap;
+}
+.estado-ok { background: #DCEFE3; color: var(--ok); }
+.estado-alerta { background: #FBEFD3; color: #855A00; }
+.estado-error { background: #F6DFDA; color: var(--error); }
+
+/* ---------- Codigos de vuelo (estilo tablero) ---------- */
+
+.codigo {
+    font-family: var(--letra-titulo);
+    font-weight: 700;
+    font-size: 1.15rem;
+    letter-spacing: .04em;
+    white-space: nowrap;
+}
+
+/* ---------- Mensajes (con la cara del capitan) ---------- */
+
+.mensaje {
+    position: fixed;
+    right: 1.5rem;
+    bottom: 1.5rem;
+    max-width: 420px;
+    padding: .7rem 1rem .7rem .7rem;
+    border-radius: 8px;
+    color: #fff;
+    background: var(--marino);
+    box-shadow: 0 8px 24px rgba(10, 21, 40, .3);
+    z-index: 100;
+    display: none;
+    align-items: center;
+    gap: .7rem;
+}
+.mensaje.visible { display: flex; }
+.mensaje.ok { background: var(--ok); }
+.mensaje.error { background: var(--error); }
+.mensaje img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    flex-shrink: 0;
+}
+
+/* ============================================================
+   Login: foto del capitan en el aeropuerto + tablero de salidas
+   ============================================================ */
+
+.login {
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+    min-height: 100vh;
+}
+
+.foto-capitan {
+    position: relative;
+    background: var(--marino) url("../img/capitan-sahur.jpg") center 20% / cover no-repeat;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 2rem;
+    min-height: 100vh;
+}
+
+.foto-capitan .marca {
+    align-self: flex-start;
+    background: rgba(10, 21, 40, .82);
+    color: #fff;
+    padding: .7rem 1rem;
+    border-radius: 8px;
+    font-size: 1.6rem;
+    gap: .35rem;
+}
+.foto-capitan .marca span { display: inline; }
+
+.tablero {
+    background: rgba(10, 21, 40, .9);
+    color: #fff;
+    border-radius: 10px;
+    padding: 1.25rem 1.25rem .75rem;
+    border-top: 4px solid var(--dorado);
+}
+.tablero h2 { color: var(--dorado); font-size: 1.3rem; margin-bottom: .5rem; }
+
+.salidas { width: 100%; border-collapse: separate; border-spacing: 0 5px; }
+.salidas th {
+    color: #8FA3C2;
+    border: none;
+    font-weight: 500;
+    font-size: .85rem;
+    padding: 0 .7rem .2rem;
+}
+.salidas td {
+    background: #050D1A;
+    border: none;
+    padding: .55rem .7rem;
+    font-family: var(--letra-titulo);
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--dorado);
+    letter-spacing: .05em;
+}
+.salidas tr:hover td { background: #050D1A; }
+.salidas td:first-child { border-radius: 4px 0 0 4px; }
+.salidas td:last-child { border-radius: 0 4px 4px 0; color: #fff; font-size: 1.05rem; }
+
+.acceso {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+}
+.acceso form { width: 100%; max-width: 380px; }
+.acceso .capitan { margin-bottom: 1.75rem; }
+.acceso .boton { width: 100%; padding: .75rem; margin-top: .5rem; }
+
+/* ---------- Celular y tablet ---------- */
+
+@media (max-width: 900px) {
+    .app { grid-template-columns: 1fr; }
+    .menu { position: static; height: auto; padding: 1rem 0; }
+    .menu nav { flex-direction: row; flex-wrap: wrap; }
+    .menu nav a { border-left: none; border-bottom: 3px solid transparent; padding: .5rem 1rem; }
+    .menu nav a.activa { border-bottom-color: var(--dorado); }
+    .usuario { margin-top: 1rem; }
+    .contenido { padding: 1.5rem 1rem; }
+    .dos-columnas { grid-template-columns: 1fr; }
+    .login { grid-template-columns: 1fr; }
+    .foto-capitan { min-height: 560px; padding: 1rem; }
+    .salidas td { font-size: 1.05rem; padding: .5rem .55rem; }
+}
+
+@media (max-width: 520px) {
+    .fila { grid-template-columns: 1fr; }
+    h1 { font-size: 1.9rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+}

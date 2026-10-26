@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Consultas y reportes - Sahur Airlines</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/estilos.css">
+    <link rel="stylesheet" href="css/admin.css">
+    <link rel="stylesheet" href="css/reportes.css">
+</head>
+<body>
+<div class="app">
+    <aside class="menu" id="menu"></aside>
+
+    <main class="contenido">
+        <div class="encabezado">
+            <div>
+                <h1>Consultas y reportes</h1>
+                <p>Boletos vendidos, pagos, ocupacion de los vuelos y ventas por empleado y por pasajero.</p>
+            </div>
+            <div class="acciones no-imprimir">
+                <button class="boton boton-secundario" type="button" onclick="descargarCsv()">Descargar Excel (CSV)</button>
+                <button class="boton boton-principal" type="button" onclick="window.print()">Imprimir</button>
+            </div>
+        </div>
+
+        <!-- Solo aparece en la hoja impresa -->
+        <p class="solo-imprimir" id="titulo-impresion"></p>
+
+        <div class="informe" id="informe"></div>
+
+        <!-- Filtro de fechas: aplica a boletos, pagos, empleados y pasajeros -->
+        <form class="filtros panel" id="form-filtros">
+            <div class="campo">
+                <label for="desde">Desde</label>
+                <input id="desde" type="date">
+            </div>
+            <div class="campo">
+                <label for="hasta">Hasta</label>
+                <input id="hasta" type="date">
+            </div>
+            <div class="acciones">
+                <button class="boton boton-principal" type="submit">Aplicar</button>
+                <button class="boton boton-secundario" type="button" onclick="filtroRapido('hoy')">Hoy</button>
+                <button class="boton boton-secundario" type="button" onclick="filtroRapido('mes')">Este mes</button>
+                <button class="boton boton-secundario" type="button" onclick="filtroRapido('todo')">Todo</button>
+            </div>
+        </form>
+
+        <div class="resumen" id="resumen"></div>
+
+        <div class="pestanas" role="tablist">
+            <button role="tab" aria-selected="true" data-pestana="boletos">Boletos vendidos</button>
+            <button role="tab" aria-selected="false" data-pestana="pagos">Pagos registrados</button>
+            <button role="tab" aria-selected="false" data-pestana="vuelos">Ocupacion por vuelo</button>
+            <button role="tab" aria-selected="false" data-pestana="empleados">Ventas por empleado</button>
+            <button role="tab" aria-selected="false" data-pestana="pasajeros">Por pasajero</button>
+        </div>
+
+        <!-- Boletos -->
+        <section class="panel" data-contenido="boletos">
+            <div class="herramientas">
+                <div class="fila">
+                    <div class="campo">
+                        <label for="f-boleto-estado">Estado del boleto</label>
+                        <select id="f-boleto-estado">
+                            <option value="">Todos</option>
+                            <option value="VENDIDOS">Vendidos (pagados y usados)</option>
+                            <option value="EMITIDO">Emitidos sin pagar</option>
+                            <option value="PAGADO">Pagados</option>
+                            <option value="USADO">Usados (abordados)</option>
+                            <option value="CANCELADO">Cancelados</option>
+                        </select>
+                    </div>
+                    <div class="campo">
+                        <label for="f-boleto-vuelo">Vuelo</label>
+                        <select id="f-boleto-vuelo"><option value="">Todos</option></select>
+                    </div>
+                </div>
+            </div>
+            <div class="tabla-contenedor" id="tabla-boletos"></div>
+        </section>
+
+        <!-- Pagos -->
+        <section class="panel" data-contenido="pagos" hidden>
+            <div class="herramientas">
+                <div class="fila">
+                    <div class="campo">
+                        <label for="f-pago-metodo">Metodo de pago</label>
+                        <select id="f-pago-metodo">
+                            <option value="">Todos</option>
+                            <option value="EFECTIVO">Efectivo</option>
+                            <option value="TARJETA">Tarjeta</option>
+                            <option value="TRANSFERENCIA">Transferencia</option>
+                        </select>
+                    </div>
+                    <div class="campo">
+                        <label for="f-pago-estado">Estado</label>
+                        <select id="f-pago-estado">
+                            <option value="">Todos</option>
+                            <option value="COMPLETADO">Completados</option>
+                            <option value="REEMBOLSADO">Reembolsados</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="tabla-contenedor" id="tabla-pagos"></div>
+        </section>
+
+        <!-- Vuelos -->
+        <section class="panel" data-contenido="vuelos" hidden>
+            <p class="ayuda">La ocupacion y los asientos disponibles son los de hoy; este reporte no depende de las fechas del filtro.</p>
+            <div class="tabla-contenedor" id="tabla-vuelos"></div>
+        </section>
+
+        <!-- Empleados -->
+        <section class="panel" data-contenido="empleados" hidden>
+            <div class="tabla-contenedor" id="tabla-empleados"></div>
+        </section>
+
+        <!-- Pasajeros -->
+        <section class="panel" data-contenido="pasajeros" hidden>
+            <div class="tabla-contenedor" id="tabla-pasajeros"></div>
+        </section>
+    </main>
+</div>
+
+<script src="js/api.js"></script>
+<script>
+    pintarMenu("reportes.html");
+
+    // Datos de todos los servicios (se cargan una vez)
+    let boletos = [], pagos = [], reservas = [], vuelos = [], asientos = [];
+    let pasajeros = [], empleados = [], aeropuertos = [];
+
+    // Pestana visible y lo ultimo que se dibujo en cada reporte (para el CSV)
+    let pestanaActual = "boletos";
+    const TABLAS = {};
+
+    const NOMBRES_PESTANA = {
+        boletos: "Boletos vendidos", pagos: "Pagos registrados", vuelos: "Ocupacion por vuelo",
+        empleados: "Ventas por empleado", pasajeros: "Por pasajero"
+    };
+
+    // ---------- Ayudantes para buscar por id ----------
+    const pasajero = id => pasajeros.find(p => p.idPasajero === id);
+    const empleado = id => empleados.find(e => e.idEmpleado === id);
+    const vuelo = id => vuelos.find(v => v.idVuelo === id);
+    const asiento = id => asientos.find(a => a.idAsiento === id);
+    const reserva = id => reservas.find(r => r.idReserva === id);
+
+    const nombrePasajero = id => { const p = pasajero(id); return p ? `${p.nombres} ${p.apellidos}` : `Pasajero ${id}`; };
+    const nombreEmpleado = id => { const e = empleado(id); return e ? e.usuario : `Empleado ${id}`; };
+    const rutaVuelo = v => v ? `${v.ruta.aeropuertoOrigen} - ${v.ruta.aeropuertoDestino}` : "";
+    const sumar = (lista, f) => lista.reduce((t, x) => t + Number(f(x) || 0), 0);
+    // cantidad(1, "boleto") -> "1 boleto"; cantidad(3, "boleto") -> "3 boletos"
+    const cantidad = (n, palabra, plural = palabra + "s") => `${n} ${n === 1 ? palabra : plural}`;
+
+    // Un boleto cuenta como vendido cuando ya se pago (PAGADO) o ya se uso (USADO)
+    const esVendido = b => b.estado === "PAGADO" || b.estado === "USADO";
+
+    // ---------- Filtro de fechas ----------
+    // Compara solo la parte de fecha "2026-10-08" del texto ISO
+    function dentroDeFechas(iso) {
+        const desde = document.getElementById("desde").value;
+        const hasta = document.getElementById("hasta").value;
+        const dia = (iso || "").slice(0, 10);
+        if (desde && dia < desde) return false;
+        if (hasta && dia > hasta) return false;
+        return true;
+    }
+
+    function hoyTexto() {
+        const f = new Date();
+        const dos = n => String(n).padStart(2, "0");
+        return `${f.getFullYear()}-${dos(f.getMonth() + 1)}-${dos(f.getDate())}`;
+    }
+
+    function filtroRapido(tipo) {
+        const hoy = hoyTexto();
+        document.getElementById("desde").value = tipo === "hoy" ? hoy : tipo === "mes" ? hoy.slice(0, 8) + "01" : "";
+        document.getElementById("hasta").value = tipo === "todo" ? "" : hoy;
+        pintarTodo();
+    }
+
+    function textoPeriodo() {
+        const desde = document.getElementById("desde").value;
+        const hasta = document.getElementById("hasta").value;
+        const f = d => new Date(d + "T12:00:00").toLocaleDateString("es-GT", { day: "2-digit", month: "short", year: "numeric" });
+        if (desde && hasta) return desde === hasta ? `el ${f(desde)}` : `del ${f(desde)} al ${f(hasta)}`;
+        if (desde) return `desde el ${f(desde)}`;
+        if (hasta) return `hasta el ${f(hasta)}`;
+        return "en todo el historial";
+    }
+
+    // Boletos y pagos dentro de las fechas elegidas
+    // (un boleto toma la fecha de su reserva; un pago, su fecha de pago)
+    const boletosDelPeriodo = () => boletos.filter(b => dentroDeFechas(b.reserva && b.reserva.fechaReserva));
+    const pagosDelPeriodo = () => pagos.filter(p => dentroDeFechas(p.fechaPago));
+    const reservasDelPeriodo = () => reservas.filter(r => dentroDeFechas(r.fechaReserva));
+
+    // ---------- Tabla generica ----------
+    // columnas: [{ titulo, html: fila => html, texto: fila => valor para el CSV, num: true }]
+    //   soloCsv: true -> la columna no se ve en pantalla, solo sale en el CSV
+    // pie: [valores html por cada columna visible] o null
+    function pintarTabla(clave, todas, filas, pie, vacio) {
+        TABLAS[clave] = { columnas: todas, filas };
+        const columnas = todas.filter(c => !c.soloCsv);
+        const caja = document.getElementById(`tabla-${clave}`);
+        if (filas.length === 0) {
+            caja.innerHTML = capitanDice(escapar(vacio));
+            return;
+        }
+        const clase = c => c.num ? ` class="num"` : "";
+        caja.innerHTML = `
+            <table>
+                <thead><tr>${columnas.map(c => `<th${clase(c)}>${c.titulo}</th>`).join("")}</tr></thead>
+                <tbody>${filas.map(f => `<tr>${columnas.map(c => `<td${clase(c)}>${c.html(f)}</td>`).join("")}</tr>`).join("")}</tbody>
+                ${pie ? `<tfoot><tr>${pie.map((p, i) => `<td${clase(columnas[i])}>${p}</td>`).join("")}</tr></tfoot>` : ""}
+            </table>`;
+    }
+
+    // ---------- Resumen de arriba ----------
+    function pintarResumen() {
+        const bol = boletosDelPeriodo();
+        const pag = pagosDelPeriodo();
+        const vendidos = bol.filter(esVendido);
+        // Al reembolsar, el mismo pago pasa de COMPLETADO a REEMBOLSADO:
+        // lo que queda COMPLETADO es lo que realmente entro
+        const ingresos = sumar(pag.filter(p => p.estado === "COMPLETADO"), p => p.monto);
+        const reembolsado = sumar(pag.filter(p => p.estado === "REEMBOLSADO"), p => p.monto);
+        const pendientes = bol.filter(b => b.estado === "EMITIDO");
+
+        // Ocupacion de los vuelos que todavia no han salido
+        const proximos = vuelos.filter(v => ["PROGRAMADO", "RETRASADO"].includes(v.estado));
+        const capacidad = sumar(proximos, v => asientosDelAvion(v).length);
+        const ocupados = sumar(proximos, v => ocupadosDelVuelo(v).length);
+        const ocupacion = capacidad ? Math.round(ocupados * 100 / capacidad) : 0;
+
+        document.getElementById("resumen").innerHTML = `
+            <div class="dato"><span>Boletos vendidos</span><strong>${vendidos.length}</strong>
+                <small>${cantidad(pendientes.length, "emitido")} sin pagar</small></div>
+            <div class="dato"><span>Ingresos</span><strong>${dinero(ingresos)}</strong>
+                <small>${cantidad(pag.filter(p => p.estado === "COMPLETADO").length, "pago completado", "pagos completados")}</small></div>
+            <div class="dato"><span>Reembolsado</span><strong>${dinero(reembolsado)}</strong>
+                <small>${cantidad(pag.filter(p => p.estado === "REEMBOLSADO").length, "pago devuelto", "pagos devueltos")}</small></div>
+            <div class="dato"><span>Ocupacion proximos vuelos</span><strong>${ocupacion}%</strong>
+                <small>${ocupados} de ${capacidad} asientos</small></div>`;
+
+        document.getElementById("informe").innerHTML = capitanDice(
+            `Reporte ${escapar(textoPeriodo())}: ${vendidos.length === 1 ? "se vendio" : "se vendieron"} <strong>${cantidad(vendidos.length, "boleto")}</strong> ` +
+            `y entraron <strong>${dinero(ingresos)}</strong>` +
+            (reembolsado ? ` (ya sin los ${dinero(reembolsado)} que se reembolsaron).` : ".") +
+            (pendientes.length ? ` Hay ${cantidad(pendientes.length, "boleto emitido", "boletos emitidos")} que todavia no se ${pendientes.length === 1 ? "ha" : "han"} pagado.` : "")
+        );
+        document.getElementById("titulo-impresion").textContent =
+            `Sahur Airlines - ${NOMBRES_PESTANA[pestanaActual]} - ${textoPeriodo()} - impreso el ${fechaHora(new Date().toISOString())}`;
+    }
+
+    // ---------- Reporte: boletos ----------
+    function pintarBoletos() {
+        const estado = document.getElementById("f-boleto-estado").value;
+        const idVuelo = Number(document.getElementById("f-boleto-vuelo").value);
+        const lista = boletosDelPeriodo()
+            .filter(b => !estado || (estado === "VENDIDOS" ? esVendido(b) : b.estado === estado))
+            .filter(b => !idVuelo || b.idVuelo === idVuelo)
+            .sort((a, b) => b.idBoleto - a.idBoleto);
+
+        pintarTabla("boletos", [
+            { titulo: "Boleto", html: b => `<span class="codigo">${escapar(b.codigoBoleto)}</span>
+                                             <span class="secundario">${fechaHora(b.reserva && b.reserva.fechaReserva)}</span>`,
+              texto: b => b.codigoBoleto },
+            { titulo: "Fecha", soloCsv: true, texto: b => fechaHora(b.reserva && b.reserva.fechaReserva) },
+            { titulo: "Pasajero", html: b => escapar(nombrePasajero(b.idPasajero)), texto: b => nombrePasajero(b.idPasajero) },
+            { titulo: "Vuelo", html: b => `${codigoVuelo(b.idVuelo)}<span class="secundario">${escapar(rutaVuelo(vuelo(b.idVuelo)))}</span>`,
+              texto: b => `${codigoVuelo(b.idVuelo)} ${rutaVuelo(vuelo(b.idVuelo))}` },
+            { titulo: "Asiento", html: b => { const a = asiento(b.idAsiento);
+                  return a ? `${escapar(a.numeroAsiento)}<span class="secundario">${escapar(a.tipoClase ? a.tipoClase.nombre : "")}</span>` : ""; },
+              texto: b => { const a = asiento(b.idAsiento); return a ? a.numeroAsiento : ""; } },
+            { titulo: "Reserva", html: b => `<a href="reservas.html?id=${b.reserva.idReserva}">#${b.reserva.idReserva}</a>`,
+              texto: b => b.reserva.idReserva },
+            { titulo: "Estado", html: b => etiquetaEstado(b.estado), texto: b => b.estado },
+            { titulo: "Precio", num: true, html: b => dinero(b.precio), texto: b => Number(b.precio).toFixed(2) }
+        ], lista,
+        [cantidad(lista.length, "boleto"), "", "", "", "", "", `<strong>${dinero(sumar(lista, b => b.precio))}</strong>`],
+        "No hay boletos con esos filtros.");
+    }
+
+    // ---------- Reporte: pagos ----------
+    function pintarPagos() {
+        const metodo = document.getElementById("f-pago-metodo").value;
+        const estado = document.getElementById("f-pago-estado").value;
+        const lista = pagosDelPeriodo()
+            .filter(p => !metodo || p.metodoPago === metodo)
+            .filter(p => !estado || p.estado === estado)
+            .sort((a, b) => b.idPago - a.idPago);
+
+        const ingresos = sumar(lista.filter(p => p.estado === "COMPLETADO"), p => p.monto);
+        const reembolsado = sumar(lista.filter(p => p.estado === "REEMBOLSADO"), p => p.monto);
+
+        pintarTabla("pagos", [
+            { titulo: "Pago", html: p => `<span class="codigo">#${p.idPago}</span>`, texto: p => p.idPago },
+            { titulo: "Fecha", html: p => fechaHora(p.fechaPago), texto: p => fechaHora(p.fechaPago) },
+            { titulo: "Reserva", html: p => `<a href="reservas.html?id=${p.idReserva}">#${p.idReserva}</a>`, texto: p => p.idReserva },
+            { titulo: "Pasajero", html: p => { const r = reserva(p.idReserva); return r ? escapar(nombrePasajero(r.idPasajero)) : ""; },
+              texto: p => { const r = reserva(p.idReserva); return r ? nombrePasajero(r.idPasajero) : ""; } },
+            { titulo: "Vendio", html: p => { const r = reserva(p.idReserva); return r ? escapar(nombreEmpleado(r.idEmpleado)) : ""; },
+              texto: p => { const r = reserva(p.idReserva); return r ? nombreEmpleado(r.idEmpleado) : ""; } },
+            { titulo: "Metodo", html: p => escapar(p.metodoPago.charAt(0) + p.metodoPago.slice(1).toLowerCase()), texto: p => p.metodoPago },
+            { titulo: "Estado", html: p => etiquetaEstado(p.estado), texto: p => p.estado },
+            { titulo: "Monto", num: true, html: p => dinero(p.monto), texto: p => Number(p.monto).toFixed(2) }
+        ], lista,
+        [cantidad(lista.length, "pago"), "", "", "", "", "", "Ingresos",
+         `<strong>${dinero(ingresos)}</strong><span class="secundario">${dinero(reembolsado)} reembolsado</span>`],
+        "No hay pagos con esos filtros.");
+    }
+
+    // ---------- Reporte: ocupacion por vuelo ----------
+    const asientosDelAvion = v => asientos.filter(a => a.avion && a.avion.idAvion === v.avion.idAvion);
+    const ocupadosDelVuelo = v => boletos.filter(b => b.idVuelo === v.idVuelo && b.estado !== "CANCELADO");
+
+    function pintarVuelos() {
+        const filas = vuelos.map(v => {
+            const total = asientosDelAvion(v).length;
+            const ocupados = ocupadosDelVuelo(v);
+            return {
+                v, total,
+                ocupados: ocupados.length,
+                vendidos: ocupados.filter(esVendido).length,
+                disponibles: Math.max(total - ocupados.length, 0),
+                porcentaje: total ? Math.round(ocupados.length * 100 / total) : 0,
+                ingresos: sumar(ocupados.filter(esVendido), b => b.precio)
+            };
+        }).sort((a, b) => a.v.fechaSalida.localeCompare(b.v.fechaSalida));
+
+        pintarTabla("vuelos", [
+            { titulo: "Vuelo", html: f => `<span class="codigo">${codigoVuelo(f.v.idVuelo)}</span><span class="secundario">${escapar(rutaVuelo(f.v))}</span>`,
+              texto: f => `${codigoVuelo(f.v.idVuelo)} ${rutaVuelo(f.v)}` },
+            { titulo: "Salida", html: f => `${soloFecha(f.v.fechaSalida)}, ${soloHora(f.v.fechaSalida)}<span class="secundario">${escapar(f.v.avion.matricula)}</span>`,
+              texto: f => fechaHora(f.v.fechaSalida) },
+            { titulo: "Estado", html: f => etiquetaEstado(f.v.estado), texto: f => f.v.estado },
+            { titulo: "Ocupacion", html: f => `<div class="ocupacion"><div class="barra"><i style="width:${f.porcentaje}%"></i></div><span>${f.porcentaje}%</span></div>`,
+              texto: f => `${f.porcentaje}%` },
+            { titulo: "Ocupados", num: true, html: f => `${f.ocupados} / ${f.total}<span class="secundario">${cantidad(f.vendidos, "pagado")}</span>`,
+              texto: f => f.ocupados },
+            { titulo: "Disponibles", num: true, html: f => f.disponibles, texto: f => f.disponibles },
+            { titulo: "Ingresos", num: true, html: f => dinero(f.ingresos), texto: f => f.ingresos.toFixed(2) }
+        ], filas,
+        [cantidad(filas.length, "vuelo"), "", "", "", sumar(filas, f => f.ocupados), sumar(filas, f => f.disponibles),
+         `<strong>${dinero(sumar(filas, f => f.ingresos))}</strong>`],
+        "Todavia no hay vuelos.");
+    }
+
+    // ---------- Reporte: ventas por empleado ----------
+    function pintarEmpleados() {
+        const res = reservasDelPeriodo();
+        const bol = boletosDelPeriodo();
+        const filas = empleados.map(e => {
+            const suyas = res.filter(r => r.idEmpleado === e.idEmpleado);
+            const susBoletos = bol.filter(b => b.reserva.idEmpleado === e.idEmpleado && esVendido(b));
+            return {
+                e,
+                reservas: suyas.length,
+                pagadas: suyas.filter(r => r.estado === "PAGADA").length,
+                canceladas: suyas.filter(r => r.estado === "CANCELADA").length,
+                boletos: susBoletos.length,
+                total: sumar(susBoletos, b => b.precio)
+            };
+        }).sort((a, b) => b.total - a.total);
+
+        pintarTabla("empleados", [
+            { titulo: "Empleado", html: f => `<span class="codigo">${escapar(f.e.usuario)}</span><span class="secundario">${escapar(f.e.nombres)} ${escapar(f.e.apellidos)}</span>`,
+              texto: f => `${f.e.usuario} (${f.e.nombres} ${f.e.apellidos})` },
+            { titulo: "Puesto", html: f => escapar(f.e.puesto), texto: f => f.e.puesto },
+            { titulo: "Reservas", num: true, html: f => f.reservas, texto: f => f.reservas },
+            { titulo: "Pagadas", num: true, html: f => f.pagadas, texto: f => f.pagadas },
+            { titulo: "Canceladas", num: true, html: f => f.canceladas, texto: f => f.canceladas },
+            { titulo: "Boletos vendidos", num: true, html: f => f.boletos, texto: f => f.boletos },
+            { titulo: "Total vendido", num: true, html: f => dinero(f.total), texto: f => f.total.toFixed(2) }
+        ], filas,
+        [cantidad(filas.length, "empleado"), "", sumar(filas, f => f.reservas), sumar(filas, f => f.pagadas),
+         sumar(filas, f => f.canceladas), sumar(filas, f => f.boletos), `<strong>${dinero(sumar(filas, f => f.total))}</strong>`],
+        "Todavia no hay empleados.");
+    }
+
+    // ---------- Reporte: por pasajero ----------
+    function pintarPasajeros() {
+        const bol = boletosDelPeriodo();
+        const filas = pasajeros.map(p => {
+            const suyos = bol.filter(b => b.idPasajero === p.idPasajero);
+            const vendidos = suyos.filter(esVendido);
+            const ultimo = suyos.map(b => b.reserva.fechaReserva).sort().pop();
+            return {
+                p,
+                boletos: vendidos.length,
+                vuelos: new Set(vendidos.map(b => b.idVuelo)).size,
+                cancelados: suyos.filter(b => b.estado === "CANCELADO").length,
+                ultimo,
+                total: sumar(vendidos, b => b.precio)
+            };
+        }).filter(f => f.boletos + f.cancelados > 0)
+          .sort((a, b) => b.total - a.total);
+
+        pintarTabla("pasajeros", [
+            { titulo: "Pasajero", html: f => `${escapar(f.p.nombres)} ${escapar(f.p.apellidos)}<span class="secundario">${escapar(f.p.numeroDocumento)}</span>`,
+              texto: f => `${f.p.nombres} ${f.p.apellidos}` },
+            { titulo: "Documento", soloCsv: true, texto: f => f.p.numeroDocumento },
+            { titulo: "Ultima compra", html: f => fechaHora(f.ultimo), texto: f => fechaHora(f.ultimo) },
+            { titulo: "Vuelos", num: true, html: f => f.vuelos, texto: f => f.vuelos },
+            { titulo: "Boletos pagados", num: true, html: f => f.boletos, texto: f => f.boletos },
+            { titulo: "Cancelados", num: true, html: f => f.cancelados, texto: f => f.cancelados },
+            { titulo: "Total pagado", num: true, html: f => dinero(f.total), texto: f => f.total.toFixed(2) }
+        ], filas,
+        [cantidad(filas.length, "pasajero"), "", "", sumar(filas, f => f.boletos), sumar(filas, f => f.cancelados),
+         `<strong>${dinero(sumar(filas, f => f.total))}</strong>`],
+        "Ningun pasajero ha comprado boletos en este periodo.");
+    }
+
+    function pintarTodo() {
+        pintarResumen();
+        pintarBoletos();
+        pintarPagos();
+        pintarVuelos();
+        pintarEmpleados();
+        pintarPasajeros();
+    }
+
+    // ---------- Descargar CSV (se abre en Excel) ----------
+    function descargarCsv() {
+        const tabla = TABLAS[pestanaActual];
+        if (!tabla || tabla.filas.length === 0) {
+            mostrarMensaje("Este reporte no tiene datos para descargar.", "error");
+            return;
+        }
+        const celda = v => `"${String(v === null || v === undefined ? "" : v).replaceAll('"', '""')}"`;
+        const lineas = [
+            tabla.columnas.map(c => celda(c.titulo)).join(","),
+            ...tabla.filas.map(f => tabla.columnas.map(c => celda(c.texto(f))).join(","))
+        ];
+        // \ufeff hace que Excel respete las tildes
+        const archivo = new Blob(["\ufeff" + lineas.join("\r\n")], { type: "text/csv;charset=utf-8" });
+        const enlace = document.createElement("a");
+        enlace.href = URL.createObjectURL(archivo);
+        enlace.download = `sahur-${pestanaActual}-${hoyTexto()}.csv`;
+        enlace.click();
+        URL.revokeObjectURL(enlace.href);
+    }
+
+    // ---------- Pestanas y filtros ----------
+    document.querySelectorAll("[data-pestana]").forEach(boton => {
+        boton.addEventListener("click", () => {
+            pestanaActual = boton.dataset.pestana;
+            document.querySelectorAll("[data-pestana]").forEach(b => b.setAttribute("aria-selected", b === boton));
+            document.querySelectorAll("[data-contenido]").forEach(c => c.hidden = c.dataset.contenido !== pestanaActual);
+            pintarResumen();
+        });
+    });
+    document.getElementById("form-filtros").addEventListener("submit", e => { e.preventDefault(); pintarTodo(); });
+    ["f-boleto-estado", "f-boleto-vuelo"].forEach(id => document.getElementById(id).addEventListener("change", pintarBoletos));
+    ["f-pago-metodo", "f-pago-estado"].forEach(id => document.getElementById(id).addEventListener("change", pintarPagos));
+
+    // ---------- Cargar todo ----------
+    async function iniciar() {
+        try {
+            [boletos, pagos, reservas, vuelos, asientos, pasajeros, empleados, aeropuertos] = await Promise.all([
+                api("reservas", "/boletos"),
+                api("pagos", "/pagos"),
+                api("reservas", "/reservas"),
+                api("vuelos", "/vuelos"),
+                api("vuelos", "/asientos"),
+                api("pasajeros", "/pasajeros"),
+                api("empleados", "/empleados"),
+                api("vuelos", "/aeropuertos")
+            ]);
+        } catch (e) {
+            document.getElementById("informe").innerHTML = capitanDice(escapar(e.message));
+            return;
+        }
+
+        document.getElementById("f-boleto-vuelo").innerHTML += vuelos
+            .map(v => `<option value="${v.idVuelo}">${codigoVuelo(v.idVuelo)} ${escapar(rutaVuelo(v))} - ${soloFecha(v.fechaSalida)}</option>`)
+            .join("");
+
+        pintarTodo();
+    }
+
+    iniciar();
+</script>
+</body>
+</html>

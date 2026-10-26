@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Iniciar sesion - Sahur Airlines</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/estilos.css">
+</head>
+<body>
+
+<main class="login">
+
+    <!-- Foto del capitan con el tablero de salidas reales encima -->
+    <section class="foto-capitan" aria-label="Proximas salidas">
+        <div class="marca">Sahur <span>Airlines</span></div>
+
+        <div class="tablero">
+            <h2>Proximas salidas</h2>
+            <table class="salidas">
+                <thead>
+                    <tr><th>Hora</th><th>Vuelo</th><th>Destino</th><th>Fecha</th></tr>
+                </thead>
+                <tbody id="filas-salidas">
+                    <tr><td colspan="4">Cargando...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- Formulario de acceso -->
+    <section class="acceso">
+        <form id="form-login">
+            <div class="capitan">
+                <img src="img/capitan-cara.jpg" alt="Capitan Sahur">
+                <p class="globo">Bienvenido a bordo. Inicia sesion con tu usuario de empleado para empezar a vender.</p>
+            </div>
+
+            <h1>Iniciar sesion</h1>
+
+            <div class="campo">
+                <label for="usuario">Usuario</label>
+                <input id="usuario" autocomplete="username" required>
+            </div>
+            <div class="campo">
+                <label for="password">Contrasena</label>
+                <input id="password" type="password" autocomplete="current-password" required>
+            </div>
+
+            <p id="error-login" class="ayuda texto-error" role="alert"></p>
+
+            <button class="boton boton-principal" type="submit" id="boton-entrar">Iniciar sesion</button>
+        </form>
+    </section>
+
+</main>
+
+<script src="js/api.js"></script>
+<script>
+    // Si ya hay sesion, entrar directo
+    if (obtenerSesion()) {
+        window.location.href = "inicio.html";
+    }
+
+    // ---------- Tablero de salidas ----------
+    async function cargarSalidas() {
+        const cuerpo = document.getElementById("filas-salidas");
+        try {
+            const [vuelos, aeropuertos] = await Promise.all([
+                api("vuelos", "/vuelos/disponibles"),
+                api("vuelos", "/aeropuertos")
+            ]);
+            const ciudad = {};
+            aeropuertos.forEach(a => ciudad[a.codigoIata] = a.ciudad || a.codigoIata);
+
+            vuelos.sort((a, b) => a.fechaSalida.localeCompare(b.fechaSalida));
+
+            if (vuelos.length === 0) {
+                cuerpo.innerHTML = `<tr><td colspan="4">No hay vuelos a la venta</td></tr>`;
+                return;
+            }
+            cuerpo.innerHTML = vuelos.slice(0, 5).map(v => `
+                <tr>
+                    <td>${soloHora(v.fechaSalida)}</td>
+                    <td>${codigoVuelo(v.idVuelo)}</td>
+                    <td>${escapar(ciudad[v.ruta.aeropuertoDestino] || v.ruta.aeropuertoDestino)}</td>
+                    <td>${soloFecha(v.fechaSalida)}</td>
+                </tr>`).join("");
+        } catch (e) {
+            cuerpo.innerHTML = `<tr><td colspan="4">No se pudieron cargar las salidas</td></tr>`;
+        }
+    }
+
+    // ---------- Login ----------
+    document.getElementById("form-login").addEventListener("submit", async (evento) => {
+        evento.preventDefault();
+        const error = document.getElementById("error-login");
+        const boton = document.getElementById("boton-entrar");
+        error.textContent = "";
+        boton.disabled = true;
+        boton.textContent = "Entrando...";
+        try {
+            const datos = await api("empleados", "/empleados/login", "POST", {
+                usuario: document.getElementById("usuario").value.trim(),
+                password: document.getElementById("password").value
+            });
+            guardarSesion(datos);
+            window.location.href = "inicio.html";
+        } catch (e) {
+            error.textContent = e.message;
+            boton.disabled = false;
+            boton.textContent = "Iniciar sesion";
+        }
+    });
+
+    cargarSalidas();
+</script>
+</body>
+</html>

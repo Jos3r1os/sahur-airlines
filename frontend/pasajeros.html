@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Pasajeros - Sahur Airlines</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/estilos.css">
+</head>
+<body>
+<div class="app">
+    <aside class="menu" id="menu"></aside>
+
+    <main class="contenido">
+        <div class="encabezado">
+            <div>
+                <h1>Pasajeros</h1>
+                <p>Registra, busca, modifica o elimina pasajeros.</p>
+            </div>
+        </div>
+
+        <div class="dos-columnas">
+
+            <!-- Lista -->
+            <section class="panel">
+                <div class="campo">
+                    <label for="buscar">Buscar por nombre o documento</label>
+                    <input id="buscar" type="search" placeholder="Ej. Lopez o 2589741230101">
+                </div>
+                <div class="tabla-contenedor">
+                    <table>
+                        <thead>
+                            <tr><th>Documento</th><th>Nombre</th><th>Contacto</th><th></th></tr>
+                        </thead>
+                        <tbody id="filas"><tr><td colspan="4" class="vacio">Cargando...</td></tr></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Formulario -->
+            <section class="panel">
+                <h2 id="titulo-form">Nuevo pasajero</h2>
+                <form id="form">
+                    <input type="hidden" id="idPasajero">
+                    <div class="campo">
+                        <label for="numeroDocumento">Numero de documento (DPI o pasaporte)</label>
+                        <input id="numeroDocumento" required>
+                    </div>
+                    <div class="campo">
+                        <label for="nombres">Nombres</label>
+                        <input id="nombres" required>
+                    </div>
+                    <div class="campo">
+                        <label for="apellidos">Apellidos</label>
+                        <input id="apellidos" required>
+                    </div>
+                    <div class="campo">
+                        <label for="fechaNacimiento">Fecha de nacimiento</label>
+                        <input id="fechaNacimiento" type="date">
+                    </div>
+                    <div class="campo">
+                        <label for="telefono">Telefono</label>
+                        <input id="telefono" type="tel">
+                    </div>
+                    <div class="campo">
+                        <label for="correo">Correo</label>
+                        <input id="correo" type="email">
+                    </div>
+                    <div class="acciones">
+                        <button class="boton boton-principal" type="submit" id="boton-guardar">Registrar pasajero</button>
+                        <button class="boton boton-secundario" type="button" id="boton-cancelar" hidden>Cancelar edicion</button>
+                    </div>
+                </form>
+            </section>
+
+        </div>
+    </main>
+</div>
+
+<script src="js/api.js"></script>
+<script>
+    pintarMenu("pasajeros.html");
+
+    let pasajeros = [];
+
+    async function cargar() {
+        try {
+            pasajeros = await api("pasajeros", "/pasajeros");
+            pintar();
+        } catch (e) {
+            document.getElementById("filas").innerHTML = filaVacia(e.message, 4);
+        }
+    }
+
+    function pintar() {
+        const texto = document.getElementById("buscar").value.trim().toLowerCase();
+        const lista = pasajeros.filter(p =>
+            `${p.numeroDocumento} ${p.nombres || ""} ${p.apellidos || ""}`.toLowerCase().includes(texto)
+        );
+        const cuerpo = document.getElementById("filas");
+        if (lista.length === 0) {
+            cuerpo.innerHTML = filaVacia(texto
+                ? "Ningun pasajero coincide con la busqueda. Revisa el nombre o el documento."
+                : "Todavia no hay pasajeros. Registra el primero con el formulario.", 4);
+            return;
+        }
+        cuerpo.innerHTML = lista.map(p => `
+            <tr>
+                <td>${escapar(p.numeroDocumento)}</td>
+                <td>${escapar(p.nombres)} ${escapar(p.apellidos)}</td>
+                <td>${escapar(p.telefono)}<span class="secundario">${escapar(p.correo)}</span></td>
+                <td class="acciones-tabla">
+                    <button class="boton boton-secundario boton-chico" onclick="editar(${p.idPasajero})">Editar</button>
+                    <button class="boton boton-peligro boton-chico" onclick="eliminar(${p.idPasajero})">Eliminar</button>
+                </td>
+            </tr>`).join("");
+    }
+
+    function editar(id) {
+        const p = pasajeros.find(x => x.idPasajero === id);
+        document.getElementById("idPasajero").value = p.idPasajero;
+        document.getElementById("numeroDocumento").value = p.numeroDocumento || "";
+        document.getElementById("nombres").value = p.nombres || "";
+        document.getElementById("apellidos").value = p.apellidos || "";
+        document.getElementById("fechaNacimiento").value = p.fechaNacimiento || "";
+        document.getElementById("telefono").value = p.telefono || "";
+        document.getElementById("correo").value = p.correo || "";
+        document.getElementById("titulo-form").textContent = "Editar pasajero";
+        document.getElementById("boton-guardar").textContent = "Guardar cambios";
+        document.getElementById("boton-cancelar").hidden = false;
+        document.getElementById("numeroDocumento").focus();
+    }
+
+    function limpiar() {
+        document.getElementById("form").reset();
+        document.getElementById("idPasajero").value = "";
+        document.getElementById("titulo-form").textContent = "Nuevo pasajero";
+        document.getElementById("boton-guardar").textContent = "Registrar pasajero";
+        document.getElementById("boton-cancelar").hidden = true;
+    }
+
+    async function eliminar(id) {
+        const p = pasajeros.find(x => x.idPasajero === id);
+        if (!confirm(`Eliminar a ${p.nombres || ""} ${p.apellidos || ""} (${p.numeroDocumento})?`)) return;
+        try {
+            await api("pasajeros", `/pasajeros/${id}`, "DELETE");
+            mostrarMensaje("Pasajero eliminado");
+            cargar();
+        } catch (e) {
+            mostrarMensaje(e.message, "error");
+        }
+    }
+
+    document.getElementById("form").addEventListener("submit", async (evento) => {
+        evento.preventDefault();
+        const id = document.getElementById("idPasajero").value;
+        const datos = {
+            numeroDocumento: document.getElementById("numeroDocumento").value.trim(),
+            nombres: document.getElementById("nombres").value.trim(),
+            apellidos: document.getElementById("apellidos").value.trim(),
+            fechaNacimiento: document.getElementById("fechaNacimiento").value || null,
+            telefono: document.getElementById("telefono").value.trim(),
+            correo: document.getElementById("correo").value.trim()
+        };
+        try {
+            if (id) {
+                await api("pasajeros", `/pasajeros/${id}`, "PUT", datos);
+                mostrarMensaje("Cambios guardados");
+            } else {
+                await api("pasajeros", "/pasajeros", "POST", datos);
+                mostrarMensaje("Pasajero registrado");
+            }
+            limpiar();
+            cargar();
+        } catch (e) {
+            mostrarMensaje(e.message, "error");
+        }
+    });
+
+    document.getElementById("boton-cancelar").addEventListener("click", limpiar);
+    document.getElementById("buscar").addEventListener("input", pintar);
+
+    cargar();
+</script>
+</body>
+</html>

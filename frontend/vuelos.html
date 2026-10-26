@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Vuelos - Sahur Airlines</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/estilos.css">
+</head>
+<body>
+<div class="app">
+    <aside class="menu" id="menu"></aside>
+
+    <main class="contenido">
+        <div class="encabezado">
+            <div>
+                <h1>Vuelos</h1>
+                <p>Programa vuelos, cambia su horario o precio y actualiza su estado.</p>
+            </div>
+        </div>
+
+        <div class="informe" id="informe"></div>
+
+        <div id="sec-vuelos"></div>
+    </main>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/crud.js"></script>
+<script>
+    pintarMenu("vuelos.html");
+
+    let rutas = [];
+    let aviones = [];
+
+    document.getElementById("informe").innerHTML = capitanDice(
+        "Un vuelo sale a la venta cuando esta <strong>Programado</strong> o <strong>Retrasado</strong> y su salida es en el futuro. " +
+        "Si ya tiene boletos vendidos no se puede eliminar: cambialo a Cancelado."
+    );
+
+    // "2026-11-15T08:30:00" -> "2026-11-15T08:30" (formato del campo datetime-local)
+    function aCampoFecha(iso) {
+        return iso ? iso.slice(0, 16) : "";
+    }
+
+    // Suma minutos a una fecha del formulario y la devuelve en el mismo formato
+    function sumarMinutos(valorCampo, minutos) {
+        const f = new Date(valorCampo);
+        f.setMinutes(f.getMinutes() + minutos);
+        const dos = n => String(n).padStart(2, "0");
+        return `${f.getFullYear()}-${dos(f.getMonth() + 1)}-${dos(f.getDate())}T${dos(f.getHours())}:${dos(f.getMinutes())}`;
+    }
+
+    async function iniciar() {
+        try {
+            [rutas, aviones] = await Promise.all([api("vuelos", "/rutas"), api("vuelos", "/aviones")]);
+        } catch (e) {
+            document.getElementById("sec-vuelos").innerHTML = capitanDice(escapar(e.message));
+            return;
+        }
+
+        const ruta = id => rutas.find(r => r.idRuta === id);
+
+        crearSeccion({
+            clave: "vuelos", contenedor: "sec-vuelos",
+            servicio: "vuelos", ruta: "/vuelos", id: "idVuelo", nombre: "vuelo",
+            vacio: "Todavia no hay vuelos. Programa el primero con el formulario.",
+            buscar: v => `${codigoVuelo(v.idVuelo)} ${v.ruta.aeropuertoOrigen} ${v.ruta.aeropuertoDestino} ${v.avion.matricula} ${textoEstado(v.estado)}`,
+            columnas: [
+                { titulo: "Vuelo", valor: v => `<span class="codigo">${codigoVuelo(v.idVuelo)}</span>
+                                                 <span class="secundario">${escapar(v.ruta.aeropuertoOrigen)} - ${escapar(v.ruta.aeropuertoDestino)}</span>` },
+                { titulo: "Salida", valor: v => `${soloFecha(v.fechaSalida)}, ${soloHora(v.fechaSalida)}<span class="secundario">Llega ${soloFecha(v.fechaLlegada)}, ${soloHora(v.fechaLlegada)}</span>` },
+                { titulo: "Avion y precio", valor: v => `${escapar(v.avion.matricula)}<span class="secundario">${dinero(v.precioBase)}</span>` },
+                { titulo: "Estado", valor: v => etiquetaEstado(v.estado) }
+            ],
+            campos: [
+                { id: "ruta", etiqueta: "Ruta", tipo: "select",
+                  opciones: () => rutas.map(r => ({ valor: r.idRuta,
+                      texto: `${r.aeropuertoOrigen} - ${r.aeropuertoDestino} (${r.duracionAproximada || "?"} min)` })),
+                  leer: v => v.ruta.idRuta },
+                { id: "avion", etiqueta: "Avion", tipo: "select",
+                  opciones: () => aviones.map(a => ({ valor: a.idAvion,
+                      texto: `${a.matricula} ${a.modelo || ""}${a.estado !== "ACTIVO" ? " (" + textoEstado(a.estado) + ")" : ""}` })),
+                  leer: v => v.avion.idAvion },
+                { id: "fechaSalida", etiqueta: "Salida", tipo: "datetime-local", requerido: true, leer: v => aCampoFecha(v.fechaSalida) },
+                { id: "fechaLlegada", etiqueta: "Llegada", tipo: "datetime-local", requerido: true, leer: v => aCampoFecha(v.fechaLlegada),
+                  ayuda: "Se calcula sola con la duracion de la ruta; puedes cambiarla." },
+                { id: "precioBase", etiqueta: "Precio base (Q)", tipo: "number", paso: "0.01", requerido: true },
+                { id: "estado", etiqueta: "Estado", tipo: "select",
+                  opciones: () => ["PROGRAMADO", "RETRASADO", "EN_VUELO", "FINALIZADO", "CANCELADO"].map(e => ({ valor: e, texto: textoEstado(e) })) }
+            ],
+            aDatos: v => {
+                if (rutas.length === 0) throw new Error("Primero registra una ruta en Aeropuertos y aviones.");
+                if (aviones.length === 0) throw new Error("Primero registra un avion en Aeropuertos y aviones.");
+                return {
+                    ruta: { idRuta: Number(v.ruta) },
+                    avion: { idAvion: Number(v.avion) },
+                    fechaSalida: v.fechaSalida + ":00",
+                    fechaLlegada: v.fechaLlegada + ":00",
+                    precioBase: Number(v.precioBase),
+                    estado: v.estado
+                };
+            },
+            // Al elegir ruta o salida, la llegada se calcula con la duracion de la ruta
+            alIniciar: form => {
+                const calcularLlegada = () => {
+                    const salida = document.getElementById("vuelos-fechaSalida").value;
+                    const r = ruta(Number(document.getElementById("vuelos-ruta").value));
+                    if (salida && r && r.duracionAproximada) {
+                        document.getElementById("vuelos-fechaLlegada").value = sumarMinutos(salida, r.duracionAproximada);
+                    }
+                };
+                document.getElementById("vuelos-ruta").addEventListener("change", calcularLlegada);
+                document.getElementById("vuelos-fechaSalida").addEventListener("change", calcularLlegada);
+            }
+        });
+    }
+
+    iniciar();
+</script>
+</body>
+</html>
