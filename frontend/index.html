@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Iniciar sesion - Sahur Airlines</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=IBM+Plex+Mono:wght@500;600&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/estilos.css">
 </head>
 <body>
@@ -14,16 +15,21 @@
 
     <!-- Foto del capitan con el tablero de salidas reales encima -->
     <section class="foto-capitan" aria-label="Proximas salidas">
-        <div class="marca">Sahur <span>Airlines</span></div>
+        <div class="marca">
+            <div>Sahur <span>Airlines</span></div>
+        </div>
 
         <div class="tablero">
-            <h2>Proximas salidas</h2>
+            <h2>
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21 15.5v-2l-8-5V4.2a1.5 1.5 0 0 0-3 0v4.3l-8 5v2l8-2.5V18l-2.2 1.6V21l3.7-1 3.7 1v-1.4L13 18v-5z"/></svg>
+                Proximas salidas
+            </h2>
             <table class="salidas">
                 <thead>
-                    <tr><th>Hora</th><th>Vuelo</th><th>Destino</th><th>Fecha</th></tr>
+                <tr><th>Hora</th><th>Vuelo</th><th>Destino</th><th>Fecha</th></tr>
                 </thead>
                 <tbody id="filas-salidas">
-                    <tr><td colspan="4">Cargando...</td></tr>
+                <tr><td colspan="4" class="cargando">Buscando los vuelos de hoy</td></tr>
                 </tbody>
             </table>
         </div>
@@ -33,19 +39,22 @@
     <section class="acceso">
         <form id="form-login">
             <div class="capitan">
-                <img src="img/capitan-cara.jpg" alt="Capitan Sahur">
-                <p class="globo">Bienvenido a bordo. Inicia sesion con tu usuario de empleado para empezar a vender.</p>
+                <img src="img/capitan-cara.jpg" alt="Capitan Sahur" id="cara-login">
+                <p class="globo">Hola, soy el Capitan Sahur. Entra con tu usuario de empleado y despegamos con las ventas de hoy.</p>
             </div>
 
             <h1>Iniciar sesion</h1>
 
             <div class="campo">
                 <label for="usuario">Usuario</label>
-                <input id="usuario" autocomplete="username" required>
+                <input id="usuario" autocomplete="username" placeholder="Tu usuario de empleado" required>
             </div>
             <div class="campo">
                 <label for="password">Contrasena</label>
-                <input id="password" type="password" autocomplete="current-password" required>
+                <div class="con-boton">
+                    <input id="password" type="password" autocomplete="current-password" required>
+                    <button type="button" id="ver-password" aria-pressed="false">Mostrar</button>
+                </div>
             </div>
 
             <p id="error-login" class="ayuda texto-error" role="alert"></p>
@@ -63,7 +72,55 @@
         window.location.href = "inicio.html";
     }
 
-    // ---------- Tablero de salidas ----------
+    // ---------- Tablero de salidas tipo Solari ----------
+    const LETRAS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    const sinMovimiento = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    // En el celular el destino se corta mas corto para que quepa el tablero
+    const largoDestino = window.matchMedia("(max-width: 600px)").matches ? 8 : 12;
+
+    // Quita tildes y deja el texto del largo exacto del tablero
+    function textoTablero(texto, largo) {
+        const limpio = String(texto || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+        return limpio.slice(0, largo).padEnd(largo, " ");
+    }
+
+    // Una fila de paletas (una por letra). Las letras finales quedan en data-final.
+    function paletas(texto, largo, blanco = false) {
+        const letras = [...textoTablero(texto, largo)].map(letra =>
+            `<span class="paleta" data-final="${escapar(letra)}">${sinMovimiento ? escapar(letra) : ""}</span>`
+        ).join("");
+        return `<span class="paletas ${blanco ? "blanco" : ""}" aria-hidden="true">${letras}</span>`;
+    }
+
+    // Hora en formato de 24 horas para el tablero: "08:30"
+    function horaTablero(iso) {
+        return new Date(iso).toLocaleTimeString("es-GT", { hour: "2-digit", minute: "2-digit", hour12: false });
+    }
+
+    // Hace girar cada paleta unas cuantas veces hasta que cae en su letra final
+    function voltearPaletas(contenedor) {
+        if (sinMovimiento) return;
+        const pendientes = [...contenedor.querySelectorAll(".paleta")].map((paleta, i) => ({
+            paleta,
+            vueltas: 5 + (i % 9) + Math.floor(Math.random() * 6)
+        }));
+        const reloj = setInterval(() => {
+            let quedan = 0;
+            pendientes.forEach(p => {
+                if (p.vueltas <= 0) return;
+                p.vueltas--;
+                quedan++;
+                p.paleta.classList.remove("girando");
+                void p.paleta.offsetWidth;
+                p.paleta.classList.add("girando");
+                p.paleta.textContent = p.vueltas === 0
+                    ? p.paleta.dataset.final
+                    : LETRAS[Math.floor(Math.random() * LETRAS.length)];
+            });
+            if (quedan === 0) clearInterval(reloj);
+        }, 70);
+    }
+
     async function cargarSalidas() {
         const cuerpo = document.getElementById("filas-salidas");
         try {
@@ -77,29 +134,54 @@
             vuelos.sort((a, b) => a.fechaSalida.localeCompare(b.fechaSalida));
 
             if (vuelos.length === 0) {
-                cuerpo.innerHTML = `<tr><td colspan="4">No hay vuelos a la venta</td></tr>`;
+                cuerpo.innerHTML = `<tr><td colspan="4">Hoy no hay vuelos a la venta. El capitan esta tomando cafe.</td></tr>`;
                 return;
             }
-            cuerpo.innerHTML = vuelos.slice(0, 5).map(v => `
-                <tr>
-                    <td>${soloHora(v.fechaSalida)}</td>
-                    <td>${codigoVuelo(v.idVuelo)}</td>
-                    <td>${escapar(ciudad[v.ruta.aeropuertoDestino] || v.ruta.aeropuertoDestino)}</td>
-                    <td>${soloFecha(v.fechaSalida)}</td>
-                </tr>`).join("");
+            // Cada fila lleva el texto real para lectores de pantalla y las paletas para la vista
+            cuerpo.innerHTML = vuelos.slice(0, 5).map(v => {
+                const destino = ciudad[v.ruta.aeropuertoDestino] || v.ruta.aeropuertoDestino;
+                return `
+                <tr aria-label="${codigoVuelo(v.idVuelo)} a ${escapar(destino)}, ${soloFecha(v.fechaSalida)} a las ${horaTablero(v.fechaSalida)}">
+                    <td>${paletas(horaTablero(v.fechaSalida), 5)}</td>
+                    <td>${paletas(codigoVuelo(v.idVuelo), 7)}</td>
+                    <td>${paletas(destino, largoDestino, true)}</td>
+                    <td>${paletas(soloFecha(v.fechaSalida).replace(/[-.]/g, " "), 6, true)}</td>
+                </tr>`;
+            }).join("");
+            voltearPaletas(cuerpo);
         } catch (e) {
-            cuerpo.innerHTML = `<tr><td colspan="4">No se pudieron cargar las salidas</td></tr>`;
+            cuerpo.innerHTML = `<tr><td colspan="4">No se pudieron cargar las salidas. Revisa que vuelos-service este corriendo.</td></tr>`;
         }
     }
 
+    // ---------- Mostrar / ocultar contrasena ----------
+    document.getElementById("ver-password").addEventListener("click", (evento) => {
+        const campo = document.getElementById("password");
+        const mostrar = campo.type === "password";
+        campo.type = mostrar ? "text" : "password";
+        evento.currentTarget.textContent = mostrar ? "Ocultar" : "Mostrar";
+        evento.currentTarget.setAttribute("aria-pressed", mostrar);
+    });
+
+    // Tocar al capitan lo hace tocar el tambor
+    const caraLogin = document.getElementById("cara-login");
+    caraLogin.addEventListener("click", () => {
+        caraLogin.style.animation = "none";
+        void caraLogin.offsetWidth;
+        caraLogin.style.animation = "";
+    });
+
     // ---------- Login ----------
+    const AVION_DESPEGUE = `<svg class="despegue" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M2.5 19h19v2h-19zM22 9.6c-.2-.8-1-1.3-1.8-1.1l-5.3 1.4-6.9-6.4-1.9.5 4.1 7.2-5 1.3-2-1.5-1.5.4 2.6 4.5s7.1-1.9 16.5-4.4c.8-.2 1.3-1.1 1.2-1.9z"/></svg>`;
+
     document.getElementById("form-login").addEventListener("submit", async (evento) => {
         evento.preventDefault();
         const error = document.getElementById("error-login");
         const boton = document.getElementById("boton-entrar");
         error.textContent = "";
         boton.disabled = true;
-        boton.textContent = "Entrando...";
+        boton.classList.add("entrando");
+        boton.innerHTML = `${AVION_DESPEGUE} Despegando...`;
         try {
             const datos = await api("empleados", "/empleados/login", "POST", {
                 usuario: document.getElementById("usuario").value.trim(),
@@ -110,6 +192,7 @@
         } catch (e) {
             error.textContent = e.message;
             boton.disabled = false;
+            boton.classList.remove("entrando");
             boton.textContent = "Iniciar sesion";
         }
     });

@@ -1,41 +1,51 @@
 /* ============================================================
    Pantallas de administracion: pestanas y generador de asientos
-   (se usa en catalogos.html)
+   (se usa en catalogos.html y reportes.html)
    ============================================================ */
 
+/* Pestanas: un riel hundido; la pestana elegida se levanta */
 .pestanas {
-    display: flex;
-    gap: .25rem;
-    border-bottom: 2px solid var(--linea);
-    margin-bottom: 1.5rem;
+    display: inline-flex;
     flex-wrap: wrap;
+    gap: 4px;
+    padding: 5px;
+    max-width: 100%;
+    background: var(--hundido);
+    border-radius: 14px;
+    box-shadow: var(--hundir);
+    margin-bottom: 2rem;
 }
 
 .pestanas button {
     font: inherit;
-    font-weight: 600;
-    background: none;
+    font-size: .93rem;
+    font-weight: 500;
+    background: transparent;
     border: none;
-    border-bottom: 3px solid transparent;
-    margin-bottom: -2px;
-    padding: .7rem 1.1rem;
-    color: var(--gris);
+    border-radius: 10px;
+    padding: .55rem 1.1rem;
+    color: var(--tinta-suave);
     cursor: pointer;
+    transition: background-color .25s, color .25s, box-shadow .25s var(--suave);
 }
-.pestanas button:hover { color: var(--marino); }
+.pestanas button:hover { color: var(--madera-honda); }
 .pestanas button[aria-selected="true"] {
+    background: var(--papel);
     color: var(--marino);
-    border-bottom-color: var(--dorado);
+    font-weight: 600;
+    box-shadow: var(--relieve-chico);
 }
 
 .generador {
     border-top: 1px solid var(--linea);
-    margin-top: 1rem;
-    padding-top: 1rem;
+    margin-top: 1.25rem;
+    padding-top: 1.25rem;
 }
 
 .generador .fila { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 
 @media (max-width: 760px) {
+    .pestanas { display: flex; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+    .pestanas button { white-space: nowrap; }
     .generador .fila { grid-template-columns: 1fr; }
 }

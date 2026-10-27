@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Inicio - Sahur Airlines</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=IBM+Plex+Mono:wght@500;600&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/estilos.css">
 </head>
 <body>
@@ -14,7 +14,10 @@
 
     <main class="contenido">
         <div class="encabezado">
-            <h1 id="saludo">Hola</h1>
+            <div>
+                <h1 id="saludo">Hola</h1>
+                <p>Esto es lo que esta pasando hoy en la terminal.</p>
+            </div>
             <div class="acciones">
                 <a class="boton boton-principal" href="vender.html">Vender boleto</a>
                 <a class="boton boton-secundario" href="pasajeros.html">Registrar pasajero</a>
@@ -24,17 +27,18 @@
         <!-- Resumen del dia que da el capitan -->
         <div class="informe" id="informe"></div>
 
-        <section class="panel">
+        <!-- Los vuelos a la venta se ven como el tablero de salidas de la terminal -->
+        <section class="panel panel-tablero">
             <h2>Vuelos a la venta</h2>
             <div class="tabla-contenedor">
                 <table>
                     <thead>
-                        <tr>
-                            <th>Vuelo</th><th>Ruta</th><th>Salida</th><th>Llegada</th>
-                            <th>Precio base</th><th>Asientos libres</th><th>Estado</th>
-                        </tr>
+                    <tr>
+                        <th>Vuelo</th><th>Ruta</th><th>Salida</th><th>Llegada</th>
+                        <th>Precio base</th><th>Asientos libres</th><th>Estado</th>
+                    </tr>
                     </thead>
-                    <tbody id="filas-vuelos"><tr><td colspan="7" class="vacio">Cargando...</td></tr></tbody>
+                    <tbody id="filas-vuelos"><tr><td colspan="7" class="vacio cargando">Cargando vuelos</td></tr></tbody>
                 </table>
             </div>
         </section>
@@ -44,9 +48,9 @@
             <div class="tabla-contenedor">
                 <table>
                     <thead>
-                        <tr><th>Reserva</th><th>Pasajero</th><th>Fecha</th><th>Total</th><th></th></tr>
+                    <tr><th>Reserva</th><th>Pasajero</th><th>Fecha</th><th>Total</th><th></th></tr>
                     </thead>
-                    <tbody id="filas-pendientes"><tr><td colspan="5" class="vacio">Cargando...</td></tr></tbody>
+                    <tbody id="filas-pendientes"><tr><td colspan="5" class="vacio cargando">Cargando reservas</td></tr></tbody>
                 </table>
             </div>
         </section>
@@ -61,18 +65,18 @@
     const hora = new Date().getHours();
     const saludo = hora < 12 ? "Buenos dias" : hora < 19 ? "Buenas tardes" : "Buenas noches";
     document.getElementById("saludo").textContent = `${saludo}, ${sesion ? sesion.usuario : ""}`;
-    document.getElementById("informe").innerHTML = capitanDice("Revisando los vuelos de hoy...");
+    document.getElementById("informe").innerHTML = capitanDice('<span class="cargando">Dame un segundo, estoy revisando los vuelos de hoy</span>');
 
     // El capitan resume cuantos vuelos hay a la venta y cuantas reservas faltan por cobrar
     function pintarInforme(cantidadVuelos, pendientes) {
         const vuelos = cantidadVuelos === 1 ? "1 vuelo a la venta" : `${cantidadVuelos} vuelos a la venta`;
         let cobro;
         if (pendientes.length === 0) {
-            cobro = "todas las reservas estan cobradas";
+            cobro = "todas las reservas estan cobradas. Buen trabajo";
         } else {
             const total = pendientes.reduce((suma, r) => suma + Number(r.total), 0);
             cobro = (pendientes.length === 1 ? "1 reserva espera pago" : `${pendientes.length} reservas esperan pago`)
-                    + ` por un total de <strong>${dinero(total)}</strong>`;
+                + ` por un total de <strong>${dinero(total)}</strong>`;
         }
         document.getElementById("informe").innerHTML =
             capitanDice(`Hoy hay <strong>${vuelos}</strong> y ${cobro}.`);
@@ -84,7 +88,7 @@
             const vuelos = await api("vuelos", "/vuelos/disponibles");
             vuelos.sort((a, b) => a.fechaSalida.localeCompare(b.fechaSalida));
             if (vuelos.length === 0) {
-                cuerpo.innerHTML = filaVacia("No hay vuelos a la venta. Crea uno en la pantalla Vuelos.", 7);
+                cuerpo.innerHTML = filaVacia("Todavia no hay vuelos a la venta. Crea uno en la pantalla Vuelos y aparecera aqui.", 7);
                 return 0;
             }
             // Cuantos asientos quedan en cada vuelo (lo calcula reservas-service)
@@ -98,7 +102,7 @@
                     <td>${fechaHora(v.fechaSalida)}</td>
                     <td>${fechaHora(v.fechaLlegada)}</td>
                     <td>${dinero(v.precioBase)}</td>
-                    <td>${libres[i]}</td>
+                    <td class="libres ${libres[i] !== "-" && libres[i] <= 5 ? "pocos" : ""}">${libres[i]}</td>
                     <td>${etiquetaEstado(v.estado)}</td>
                 </tr>`).join("");
             return vuelos.length;
@@ -119,9 +123,9 @@
             pasajeros.forEach(p => nombre[p.idPasajero] = `${p.nombres || ""} ${p.apellidos || ""}`.trim() || p.numeroDocumento);
 
             const pendientes = reservas.filter(r => r.estado === "PENDIENTE")
-                                       .sort((a, b) => b.idReserva - a.idReserva);
+                .sort((a, b) => b.idReserva - a.idReserva);
             if (pendientes.length === 0) {
-                cuerpo.innerHTML = filaVacia("No hay reservas pendientes de pago. Todo esta cobrado.", 5);
+                cuerpo.innerHTML = filaVacia("No hay reservas esperando pago. Todo esta cobrado.", 5);
                 return pendientes;
             }
             cuerpo.innerHTML = pendientes.map(r => `

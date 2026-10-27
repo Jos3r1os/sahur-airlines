@@ -73,15 +73,32 @@ function requerirSesion() {
 
 // ---------- Menu lateral ----------
 
+// Pictogramas del menu, al estilo de la senalizacion de aeropuerto
+const ICONOS = {
+    inicio: `<path d="M3.5 11 12 4l8.5 7"/><path d="M5.5 9.5V20h13V9.5"/><path d="M10 20v-5.5h4V20"/>`,
+    boleto: `<path d="M3.5 6.5h17v3.5a2 2 0 0 0 0 4v3.5h-17V14a2 2 0 0 0 0-4z"/><path d="M14.5 6.5v11" stroke-dasharray="2 2.4"/>`,
+    recibo: `<path d="M6 3.5h12v17l-3-2-3 2-3-2-3 2z"/><path d="M9 8.5h6M9 12.5h6"/>`,
+    grafica: `<path d="M4 20h16"/><path d="M7 16.5V11M12 16.5V6.5M17 16.5v-8"/>`,
+    personas: `<circle cx="9" cy="8" r="3.2"/><path d="M3.5 19.5a5.5 5.5 0 0 1 11 0"/><path d="M16 5.2a3 3 0 0 1 0 5.6M17.6 14a5 5 0 0 1 3 5.5"/>`,
+    avion: `<path d="M21 15.5v-2l-8-5V4.2a1.5 1.5 0 0 0-3 0v4.3l-8 5v2l8-2.5V18l-2.2 1.6V21l3.7-1 3.7 1v-1.4L13 18v-5z"/>`,
+    torre: `<path d="M9.5 21 10.5 12h3l1 9"/><path d="M6.5 8h11L16 12H8z"/><path d="M12 8V4.5M10 4.5h4"/><path d="M5 21h14"/>`,
+    gafete: `<rect x="5" y="3.5" width="14" height="17" rx="2.5"/><circle cx="12" cy="10.5" r="2.5"/><path d="M8.5 17.5a3.5 3.5 0 0 1 7 0"/><path d="M10 6.5h4"/>`
+};
+
+function icono(nombre) {
+    return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONOS[nombre]}</svg>`;
+}
+
 const PAGINAS = [
-    { archivo: "inicio.html", nombre: "Inicio" },
-    { archivo: "vender.html", nombre: "Vender boleto" },
-    { archivo: "reservas.html", nombre: "Reservas y pagos" },
-    { archivo: "reportes.html", nombre: "Consultas y reportes" },
-    { archivo: "pasajeros.html", nombre: "Pasajeros" },
-    { archivo: "vuelos.html", nombre: "Vuelos" },
-    { archivo: "catalogos.html", nombre: "Aeropuertos y aviones" },
-    { archivo: "empleados.html", nombre: "Empleados" }
+    { archivo: "inicio.html", nombre: "Inicio", icono: "inicio" },
+    { archivo: "vender.html", nombre: "Vender boleto", icono: "boleto" },
+    { archivo: "reservas.html", nombre: "Reservas y pagos", icono: "recibo" },
+    { archivo: "reportes.html", nombre: "Consultas y reportes", icono: "grafica" },
+    { archivo: "pasajeros.html", nombre: "Pasajeros", icono: "personas" },
+    { archivo: "vuelos.html", nombre: "Vuelos", icono: "avion" },
+    { archivo: "catalogos.html", nombre: "Aeropuertos y aviones", icono: "torre" },
+    { archivo: "empleados.html", nombre: "Empleados", icono: "gafete" }
 ];
 
 // Dibuja el menu en el elemento <aside id="menu">
@@ -89,21 +106,35 @@ function pintarMenu(paginaActual) {
     const sesion = requerirSesion();
     if (!sesion) return;
 
-    const enlaces = PAGINAS.map(p =>
-        `<a href="${p.archivo}" class="${p.archivo === paginaActual ? "activa" : ""}">${p.nombre}</a>`
-    ).join("");
+    const enlaces = PAGINAS.map(p => {
+        const activa = p.archivo === paginaActual;
+        return `<a href="${p.archivo}" class="${activa ? "activa" : ""}" ${activa ? 'aria-current="page"' : ""}>
+                    <span class="icono">${icono(p.icono)}</span>${p.nombre}
+                </a>`;
+    }).join("");
 
     document.getElementById("menu").innerHTML = `
         <div class="marca">
-            <img src="${CARA_CAPITAN}" alt="">
+            <img src="${CARA_CAPITAN}" alt="Capitan Sahur" title="Saluda al capitan" id="cara-marca">
             <div>Sahur <span>Airlines</span></div>
         </div>
-        <nav>${enlaces}</nav>
+        <nav aria-label="Menu principal">${enlaces}</nav>
         <div class="usuario">
-            Sesion iniciada como
+            De turno hoy
             <strong>${escapar(sesion.usuario)}</strong>
             <button type="button" onclick="cerrarSesion()">Cerrar sesion</button>
         </div>`;
+
+    // Si tocas la cara del capitan, el capitan toca: tung, tung, tung
+    const cara = document.getElementById("cara-marca");
+    cara.addEventListener("click", () => tocarTambor(cara));
+}
+
+// Reinicia la animacion "tung tung tung" en una imagen del capitan
+function tocarTambor(imagen) {
+    imagen.classList.remove("tocando");
+    void imagen.offsetWidth;   // obliga al navegador a reiniciar la animacion
+    imagen.classList.add("tocando");
 }
 
 // ---------- El capitan habla ----------
@@ -134,8 +165,11 @@ function mostrarMensaje(texto, tipo = "ok") {
         caja.setAttribute("role", "status");
         document.body.appendChild(caja);
     }
-    caja.className = "mensaje visible " + tipo;
+    // Se quita y se vuelve a poner "visible" para que el capitan anime cada mensaje nuevo
+    caja.className = "mensaje " + tipo;
     caja.innerHTML = `<img src="${CARA_CAPITAN}" alt=""><span>${escapar(texto)}</span>`;
+    void caja.offsetWidth;
+    caja.classList.add("visible");
     clearTimeout(temporizadorMensaje);
     temporizadorMensaje = setTimeout(() => caja.classList.remove("visible"), 5000);
 }
@@ -152,7 +186,7 @@ function fechaHora(iso) {
     if (!iso) return "";
     const f = new Date(iso);
     return f.toLocaleDateString("es-GT", { day: "2-digit", month: "short", year: "numeric" }) + " " +
-           f.toLocaleTimeString("es-GT", { hour: "2-digit", minute: "2-digit" });
+        f.toLocaleTimeString("es-GT", { hour: "2-digit", minute: "2-digit" });
 }
 
 function soloHora(iso) {

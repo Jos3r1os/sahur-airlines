@@ -10,58 +10,74 @@
     flex-wrap: wrap;
 }
 .filtros .campo { min-width: 170px; }
-.filtros .acciones { margin: 0 0 1rem; }
+.filtros .acciones { margin: 0 0 1.1rem; }
 
-/* Numeros grandes del resumen */
+/* Numeros del resumen: piezas en relieve sobre el crema de la terminal */
 .resumen {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 1rem;
-    margin-bottom: 1.5rem;
+    gap: 1.5rem;
+    margin-bottom: 2.25rem;
 }
 .dato {
-    background: var(--papel);
-    border: 1px solid var(--linea);
-    border-top: 4px solid var(--marino);
-    border-radius: 6px;
-    padding: 1rem 1.1rem;
+    background: var(--lino);
+    border-radius: var(--radio-grande);
+    padding: 1.1rem 1.25rem 1.2rem;
+    box-shadow: var(--relieve);
+    animation: aparecer .4s var(--suave) both;
 }
-.dato:first-child { border-top-color: var(--dorado); }
-.dato span { display: block; color: var(--gris); font-size: .9rem; }
+.dato span { display: block; color: var(--tinta-suave); font-size: .88rem; }
 .dato strong {
     display: block;
-    font-family: var(--letra-titulo);
-    font-size: 2rem;
-    font-weight: 700;
-    line-height: 1.1;
+    font-family: var(--letra-codigo), monospace;
+    font-size: 1.7rem;
+    font-weight: 600;
+    line-height: 1.2;
+    margin: .2rem 0 .1rem;
+    color: var(--marino);
     white-space: nowrap;
 }
-.dato small { color: var(--gris); font-size: .85rem; }
+.dato:first-child strong { color: var(--madera-honda); }
+.dato small { color: var(--tinta-suave); font-size: .84rem; }
 
 /* Columnas de numeros alineadas a la derecha */
 th.num, td.num { text-align: right; white-space: nowrap; }
+td.num { font-variant-numeric: tabular-nums; }
 
 /* Fila de totales al final de cada tabla */
 tfoot td {
     font-weight: 600;
-    border-top: 2px solid var(--linea);
+    border-top: 1.5px solid var(--linea-fuerte);
     border-bottom: none;
-    background: var(--fondo);
+    background: var(--crema);
     white-space: nowrap;
 }
-tr:hover tfoot td { background: var(--fondo); }
+tfoot tr:hover td { background: var(--crema); }
 
-/* Barra de ocupacion de un vuelo */
-.ocupacion { display: flex; align-items: center; gap: .6rem; min-width: 150px; }
+/* Barra de ocupacion de un vuelo: riel hundido que se llena de madera */
+.ocupacion { display: flex; align-items: center; gap: .7rem; min-width: 160px; }
 .ocupacion .barra {
     flex: 1;
-    height: 8px;
-    background: var(--linea);
+    height: 10px;
+    background: var(--hundido);
     border-radius: 999px;
     overflow: hidden;
+    box-shadow: inset 1px 1px 3px var(--sombra-oscura);
 }
-.ocupacion .barra i { display: block; height: 100%; background: var(--dorado); }
-.ocupacion span { font-size: .85rem; color: var(--gris); min-width: 3ch; text-align: right; }
+.ocupacion .barra i {
+    display: block;
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--madera-clara), var(--madera));
+    transform-origin: left center;
+    animation: llenar .9s var(--suave) both;
+}
+.ocupacion span { font-size: .85rem; color: var(--tinta-suave); min-width: 3.5ch; text-align: right; font-family: var(--letra-codigo), monospace; }
+
+@keyframes llenar {
+    from { transform: scaleX(0); }
+    to   { transform: none; }
+}
 
 /* Selectores dentro de la barra de herramientas de cada reporte */
 .herramientas {
@@ -72,9 +88,9 @@ tr:hover tfoot td { background: var(--fondo); }
     flex-wrap: wrap;
 }
 .herramientas .campo { min-width: 200px; }
-.herramientas .acciones { margin: 0 0 1rem; }
+.herramientas .acciones { margin: 0 0 1.1rem; }
 
-@media (max-width: 900px) {
+@media (max-width: 1100px) {
     .resumen { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
@@ -88,7 +104,8 @@ tr:hover tfoot td { background: var(--fondo); }
     .app { display: block; }
     .menu, .pestanas, .filtros, .herramientas .acciones, .informe, .no-imprimir { display: none !important; }
     .contenido { padding: 0; max-width: none; }
-    .panel, .dato { border-color: #999; break-inside: avoid; }
+    .panel, .dato { box-shadow: none; border: 1px solid #999; break-inside: avoid; background: #fff; }
+    .ocupacion .barra i { animation: none; }
     .solo-imprimir { display: block !important; }
 }
 .solo-imprimir { display: none; }

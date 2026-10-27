@@ -1,38 +1,55 @@
 /* ============================================================
    Estilos de la venta: pasos, mapa de asientos y pase de abordar
-   (se usa en vender.html y reservas.html)
+   (se usa en vender.html, reservas.html y catalogos.html)
    ============================================================ */
 
 /* ---------- Pasos de la venta ---------- */
 
-.paso { position: relative; }
+.paso { position: relative; transition: opacity .3s; }
 
 .paso-titulo {
     display: flex;
     align-items: center;
-    gap: .75rem;
-    margin-bottom: 1rem;
+    gap: .85rem;
+    margin-bottom: 1.1rem;
 }
 .paso-titulo h2 { margin: 0; }
 
-/* Numero del paso (la venta si es una secuencia) */
+/* Numero del paso (la venta si es una secuencia): hundido, activo o listo */
 .paso-numero {
-    width: 34px;
-    height: 34px;
-    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
     display: grid;
     place-items: center;
-    font-family: var(--letra-titulo);
-    font-weight: 700;
-    font-size: 1.15rem;
-    background: var(--linea);
-    color: var(--gris);
+    font-family: var(--letra-codigo), monospace;
+    font-weight: 600;
+    font-size: 1.05rem;
+    background: var(--hundido);
+    color: var(--tenue);
+    box-shadow: var(--hundir);
     flex-shrink: 0;
+    transition: background-color .3s, color .3s, box-shadow .3s;
 }
-.paso.activo .paso-numero { background: var(--dorado); color: var(--marino); }
-.paso.listo .paso-numero { background: var(--marino); color: #fff; }
+.paso.activo .paso-numero {
+    background: var(--madera);
+    color: #fff;
+    box-shadow: 4px 4px 10px rgba(107, 66, 38, .3);
+    animation: llamar 1.4s var(--suave) 2;
+}
+/* Paso terminado: el numero se vuelve una palomita sobre azul marino */
+.paso.listo .paso-numero {
+    background: var(--marino) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' fill='none' stroke='%23F2D48A' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 10.5 4 4 8-9'/%3E%3C/svg%3E") center / 20px no-repeat;
+    color: transparent;
+    box-shadow: 4px 4px 10px rgba(13, 23, 51, .25);
+}
 
-.paso.bloqueado { opacity: .55; }
+@keyframes llamar {
+    0%, 100% { box-shadow: 4px 4px 10px rgba(107, 66, 38, .3), 0 0 0 0 rgba(139, 94, 60, .35); }
+    50%      { box-shadow: 4px 4px 10px rgba(107, 66, 38, .3), 0 0 0 9px rgba(139, 94, 60, 0); }
+}
+
+.paso.bloqueado { opacity: .5; }
 .paso.bloqueado .paso-contenido { pointer-events: none; }
 
 /* Resumen de lo que ya se eligio en un paso */
@@ -41,10 +58,12 @@
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
-    background: var(--fondo);
-    border-radius: 6px;
-    padding: .7rem 1rem;
+    background: var(--madera-palida);
+    border-radius: var(--radio);
+    padding: .85rem 1.1rem;
     flex-wrap: wrap;
+    box-shadow: inset 3px 0 0 var(--madera);
+    animation: aparecer .4s var(--suave) both;
 }
 .elegido strong { font-size: 1.05rem; }
 
@@ -54,83 +73,113 @@
     gap: 0 1rem;
 }
 
-tr.seleccionada td { background: #FBF1DA; }
-
-/* ---------- Mapa de asientos ---------- */
+/* ---------- Mapa de asientos: el fuselaje visto desde arriba ---------- */
 
 .cabina {
+    position: relative;
     display: inline-block;
-    background: var(--fondo);
-    border: 2px solid var(--linea);
-    border-radius: 60px 60px 14px 14px;  /* nariz del avion arriba */
-    padding: 2.5rem 1.25rem 1.25rem;
-    margin-bottom: 1rem;
+    background: var(--lino);
+    border-radius: 120px 120px 22px 22px;  /* nariz del avion arriba */
+    padding: 4rem 1.5rem 1.5rem;
+    margin: .25rem .25rem 1.25rem;
+    box-shadow: inset 0 0 0 2px var(--linea-fuerte);
+}
+/* Ventanitas de la cabina de mando */
+.cabina::before {
+    content: "";
+    position: absolute;
+    top: 1.35rem;
+    left: 50%;
+    width: 56px;
+    height: 14px;
+    transform: translateX(-50%);
+    border-radius: 14px 14px 4px 4px;
+    background:
+            linear-gradient(90deg, transparent 46%, var(--lino) 46% 54%, transparent 54%),
+            var(--marino);
+    opacity: .85;
 }
 
 .fila-asientos {
     display: flex;
     align-items: center;
-    gap: .4rem;
-    margin-bottom: .4rem;
+    gap: .45rem;
+    margin-bottom: .5rem;
 }
 
 .numero-fila {
-    width: 1.6rem;
+    width: 1.8rem;
     text-align: center;
-    font-family: var(--letra-titulo);
-    font-weight: 600;
-    color: var(--gris);
+    font-family: var(--letra-codigo), monospace;
+    font-weight: 500;
+    font-size: .85rem;
+    color: var(--tenue);
 }
 
-.pasillo { width: 1.4rem; }
+.pasillo { width: 1.6rem; }
 
+/* Asiento libre: levantado. Ocupado: hundido. */
 .asiento {
-    width: 46px;
-    height: 46px;
-    border-radius: 8px 8px 4px 4px;
-    border: 2px solid #9FB0C7;
-    background: #fff;
+    width: 44px;
+    height: 44px;
+    border-radius: 11px 11px 6px 6px;
+    border: 2px solid transparent;
+    background: var(--papel);
     color: var(--marino);
-    font: inherit;
+    font-family: var(--letra-codigo), monospace;
     font-weight: 600;
+    font-size: .9rem;
     cursor: pointer;
+    box-shadow: var(--relieve-chico);
+    transition: transform .2s var(--rebote), border-color .2s, box-shadow .2s;
 }
-.asiento:hover:not(:disabled) { border-color: var(--marino); }
-.asiento.ejecutiva { border-color: var(--dorado); background: #FFF8E8; }
+.asiento:hover:not(:disabled) {
+    transform: translateY(-2px);
+    border-color: var(--madera-clara);
+    box-shadow: 5px 5px 10px var(--sombra-oscura), -4px -4px 9px #FFFFFF;
+}
+.asiento.ejecutiva { background: var(--dorado-palido); color: var(--madera-honda); }
 .asiento.ocupado {
-    background: #D5DCE6;
-    border-color: #D5DCE6;
-    color: #8A97A8;
+    background: var(--hundido);
+    color: var(--tenue);
     cursor: not-allowed;
-    text-decoration: line-through;
+    box-shadow: var(--hundir);
 }
 .asiento.elegido-asiento {
     background: var(--marino);
-    border-color: var(--marino);
+    border-color: var(--dorado);
     color: #fff;
+    box-shadow: 4px 4px 10px rgba(13, 23, 51, .35);
+    animation: sentarse .45s var(--rebote);
 }
-.asiento-vacio { width: 46px; height: 46px; }
+.asiento-vacio { width: 44px; height: 44px; }
+
+@keyframes sentarse {
+    0%   { transform: scale(.8); }
+    60%  { transform: scale(1.12); }
+    100% { transform: none; }
+}
 
 .leyenda {
     display: flex;
     flex-wrap: wrap;
-    gap: 1rem;
-    font-size: .9rem;
-    color: var(--gris);
-    margin-bottom: 1rem;
+    gap: .6rem 1.25rem;
+    font-size: .88rem;
+    color: var(--tinta-suave);
+    margin-bottom: 1.1rem;
 }
-.leyenda span { display: inline-flex; align-items: center; gap: .4rem; }
+.leyenda span { display: inline-flex; align-items: center; gap: .45rem; }
 .leyenda i {
-    width: 16px;
-    height: 16px;
-    border-radius: 4px;
-    border: 2px solid #9FB0C7;
-    background: #fff;
+    width: 18px;
+    height: 18px;
+    border-radius: 5px 5px 3px 3px;
+    background: var(--papel);
+    box-shadow: inset 0 0 0 1.5px var(--linea-fuerte);
     display: inline-block;
 }
-.leyenda i.ejecutiva { border-color: var(--dorado); background: #FFF8E8; }
-.leyenda i.ocupado { background: #D5DCE6; border-color: #D5DCE6; }
-.leyenda i.elegido-asiento { background: var(--marino); border-color: var(--marino); }
+.leyenda i.ejecutiva { background: var(--dorado-palido); box-shadow: inset 0 0 0 1.5px var(--dorado-claro); }
+.leyenda i.ocupado { background: var(--hundido); box-shadow: inset 2px 2px 3px var(--sombra-oscura); }
+.leyenda i.elegido-asiento { background: var(--marino); box-shadow: inset 0 0 0 2px var(--dorado); }
 
 .detalle-asiento {
     display: flex;
@@ -139,117 +188,167 @@ tr.seleccionada td { background: #FBF1DA; }
     gap: 1rem;
     flex-wrap: wrap;
     border-top: 1px solid var(--linea);
-    padding-top: 1rem;
+    padding-top: 1.1rem;
+    animation: aparecer .35s var(--suave) both;
 }
 .precio-grande {
-    font-family: var(--letra-titulo);
+    display: block;
+    font-family: var(--letra-codigo), monospace;
     font-size: 1.8rem;
-    font-weight: 700;
+    font-weight: 600;
+    color: var(--madera-honda);
+    margin-top: .2rem;
 }
 
 /* ============================================================
-   Pase de abordar
+   Pase de abordar: cuerpo azul marino + talon de papel crema
    ============================================================ */
 
-.pases { display: grid; gap: 1rem; margin-bottom: 1.25rem; }
+.pases { display: grid; gap: 1.25rem; margin-bottom: 1.5rem; }
 
 .pase {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 190px;
+    grid-template-columns: minmax(0, 1fr) 210px;
     background: var(--marino);
     color: #fff;
-    border-radius: 12px;
+    border-radius: var(--radio-grande);
     overflow: hidden;
     position: relative;
+    box-shadow: 6px 6px 16px rgba(13, 23, 51, .22);
 }
 
-.pase-cuerpo { padding: 1.1rem 1.4rem 1.2rem; }
+/* El pase recien emitido "sale de la impresora" */
+#contenido-cobro .pases > .pase:last-child { animation: imprimir .8s var(--suave) both; }
+@keyframes imprimir {
+    from { clip-path: inset(0 0 100% 0); transform: translateY(-10px); }
+    to   { clip-path: inset(0 0 0 0); transform: none; }
+}
+
+.pase-cuerpo { padding: 1.2rem 1.5rem 1.3rem; }
 
 .pase-marca {
     display: flex;
     justify-content: space-between;
-    font-family: var(--letra-titulo);
-    font-weight: 700;
-    font-size: 1.1rem;
-    color: var(--dorado);
-    margin-bottom: .6rem;
+    align-items: baseline;
+    gap: 1rem;
+    font-family: var(--letra-titulo), serif;
+    font-size: 1.25rem;
+    color: var(--dorado-claro);
+    margin-bottom: .75rem;
 }
-.pase-marca span { color: #8FA3C2; font-weight: 500; }
+.pase-marca span { font-family: var(--letra), sans-serif; font-size: .82rem; color: #9FAED2; }
 
 .pase-ruta {
     display: flex;
     align-items: center;
     gap: 1rem;
-    margin-bottom: .9rem;
+    margin-bottom: 1rem;
 }
 .pase-ruta b {
     display: block;
-    font-family: var(--letra-titulo);
-    font-size: 2.6rem;
+    font-family: var(--letra-codigo), monospace;
+    font-weight: 600;
+    font-size: 2.4rem;
     line-height: 1;
-    letter-spacing: .04em;
+    letter-spacing: .03em;
 }
-.pase-ruta small { color: #B7C3D6; font-size: .85rem; }
-.pase-ruta .avion { font-size: 1.6rem; color: var(--dorado); }
+.pase-ruta small { color: #B9C3DA; font-size: .85rem; }
+
+/* El avion sobre una linea punteada entre origen y destino */
+.pase-ruta .avion {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    font-size: 1.5rem;
+    color: var(--dorado);
+    min-width: 60px;
+}
+.pase-ruta .avion::before,
+.pase-ruta .avion::after {
+    content: "";
+    flex: 1;
+    border-top: 2px dashed rgba(255, 255, 255, .25);
+}
 
 .pase-datos {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: .6rem 1rem;
+    gap: .7rem 1rem;
     margin: 0;
 }
-.pase-datos dt { color: #8FA3C2; font-size: .8rem; }
+.pase-datos dt { color: #9FAED2; font-size: .78rem; }
 .pase-datos dd {
     margin: 0;
-    font-family: var(--letra-titulo);
-    font-size: 1.15rem;
+    font-family: var(--letra-codigo), monospace;
+    font-size: 1.05rem;
     font-weight: 600;
 }
+.pase-datos div:first-child dd { font-family: var(--letra), sans-serif; }
 
-/* Talon: separado con linea punteada como un boleto real */
+/* Talon: papel crema, separado con linea punteada y muescas como un boleto real */
 .pase-talon {
     position: relative;
     margin: 0;
-    background: var(--marino-claro);
-    border-left: 2px dashed #4A6285;
-    padding: 1.1rem 1rem;
+    background: var(--crema);
+    color: var(--tinta);
+    border-left: 2px dashed var(--linea-fuerte);
+    padding: 1.2rem 1.1rem;
     display: flex;
     flex-direction: column;
-    gap: .5rem;
+    gap: .45rem;
     align-items: flex-start;
 }
-.pase-talon dt { color: #8FA3C2; font-size: .8rem; }
+.pase-talon::before,
+.pase-talon::after {
+    content: "";
+    position: absolute;
+    left: -12px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--papel);
+}
+.pase-talon::before { top: -11px; }
+.pase-talon::after { bottom: -11px; }
+.pase-talon dt { color: var(--tinta-suave); font-size: .78rem; }
 .pase-talon dd {
-    margin: 0 0 .3rem;
-    font-family: var(--letra-titulo);
-    font-size: 1.2rem;
+    margin: 0 0 .25rem;
+    font-family: var(--letra-codigo), monospace;
+    font-size: 1.1rem;
     font-weight: 600;
+    color: var(--marino);
 }
 
-/* Sello del capitan cuando el boleto esta pagado */
+/* Sello del capitan cuando el boleto esta pagado: cae de golpe */
 .sello {
     margin-top: auto;
     display: flex;
     align-items: center;
-    gap: .45rem;
-    border: 3px solid var(--dorado);
-    color: var(--dorado);
+    gap: .5rem;
+    border: 3px solid var(--madera);
+    color: var(--madera);
     border-radius: 999px;
-    padding: .25rem .8rem .25rem .25rem;
-    transform: rotate(-7deg);
-    font-family: var(--letra-titulo);
-    font-weight: 700;
-    font-size: 1.25rem;
+    padding: .25rem .9rem .25rem .25rem;
+    font-family: var(--letra-titulo), serif;
+    font-size: 1.35rem;
+    transform: rotate(-8deg);
+    animation: sellar .5s var(--rebote) .35s both;
 }
 .sello img {
-    width: 34px;
-    height: 34px;
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
-    border: 2px solid var(--dorado);
+    border: 2px solid var(--madera);
+    object-fit: cover;
+}
+@keyframes sellar {
+    from { transform: scale(2.2) rotate(-22deg); opacity: 0; }
+    to   { transform: rotate(-8deg); opacity: 1; }
 }
 
 /* Pase cancelado: se apaga */
-.pase.cancelado { filter: grayscale(1); opacity: .6; }
+.pase.cancelado { filter: grayscale(1); opacity: .55; }
 
 /* ---------- Cobro ---------- */
 
@@ -260,22 +359,32 @@ tr.seleccionada td { background: #FBF1DA; }
     gap: 1rem;
     flex-wrap: wrap;
     border-top: 1px solid var(--linea);
-    padding-top: 1rem;
+    padding-top: 1.25rem;
 }
 .cobro .campo { margin-bottom: 0; min-width: 220px; }
-.total-venta { color: var(--gris); }
+.total-venta { color: var(--tinta-suave); }
 .total-venta strong {
     display: block;
-    color: var(--tinta);
-    font-family: var(--letra-titulo);
+    color: var(--marino);
+    font-family: var(--letra-codigo), monospace;
+    font-weight: 600;
     font-size: 2rem;
-    line-height: 1.1;
+    line-height: 1.15;
 }
 
 @media (max-width: 760px) {
     .filtros { grid-template-columns: 1fr; }
     .pase { grid-template-columns: 1fr; }
-    .pase-talon { border-left: none; border-top: 2px dashed #4A6285; }
+    .pase-talon { border-left: none; border-top: 2px dashed var(--linea-fuerte); flex-direction: row; flex-wrap: wrap; gap: .5rem 1.5rem; align-items: center; }
+    .pase-talon::before, .pase-talon::after { top: -12px; bottom: auto; }
+    .pase-talon::before { left: -11px; }
+    .pase-talon::after { left: auto; right: -11px; }
     .pase-datos { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .asiento, .asiento-vacio { width: 40px; height: 40px; }
+    .pase-ruta b { font-size: 2rem; }
+    .sello { margin-top: 0; }
+    .asiento, .asiento-vacio { width: 38px; height: 38px; }
+    .cabina { padding: 3.5rem 1rem 1rem; }
 }
+
+/* En Aeropuertos y aviones, tocar un asiento lo elimina: se marca en rojo al pasar */
+#panel-asientos .asiento:hover:not(:disabled) { border-color: var(--error-vivo); color: var(--error); }
