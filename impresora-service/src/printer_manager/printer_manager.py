@@ -18,7 +18,20 @@ except ImportError:
     Image = None
 
 CARPETA = os.path.dirname(os.path.abspath(__file__))
-CARA_CAPITAN = os.path.join(CARPETA, "..", "frontend", "img", "capitan-cara.jpg")
+
+
+def buscar_cara_capitan():
+    """Sube carpeta por carpeta hasta encontrar frontend/img/capitan-cara.jpg del proyecto."""
+    carpeta = CARPETA
+    for _ in range(6):
+        ruta = os.path.join(carpeta, "frontend", "img", "capitan-cara.jpg")
+        if os.path.exists(ruta):
+            return ruta
+        carpeta = os.path.dirname(carpeta)
+    return None
+
+
+CARA_CAPITAN = buscar_cara_capitan()
 
 # ---------- Comandos ESC/POS ----------
 INICIAR = b"\x1b@"
@@ -116,8 +129,14 @@ class PrinterManager:
 
     def logo_capitan(self):
         """Convierte la foto del capitan en una medalla redonda de puntos (se calcula una sola vez)."""
-        if self._logo is not None or Image is None or not os.path.exists(CARA_CAPITAN):
+        if self._logo is not None:
             return self._logo
+        if Image is None:
+            print("OJO: falta pillow (pip install pillow). Los tickets saldran sin la cara del capitan.")
+            return None
+        if CARA_CAPITAN is None:
+            print("OJO: no encontre frontend/img/capitan-cara.jpg. Los tickets saldran sin la cara del capitan.")
+            return None
         lado = self.ancho_logo
         foto = Image.open(CARA_CAPITAN).convert("L")
         foto = ImageOps.fit(foto, (lado, lado))
