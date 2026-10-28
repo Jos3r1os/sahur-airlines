@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Vender boleto - Sahur Airlines</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=IBM+Plex+Mono:wght@500;600&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/estilos.css">
     <link rel="stylesheet" href="css/boletos.css">
 </head>
@@ -59,7 +59,7 @@
                 <div class="tabla-contenedor">
                     <table>
                         <thead>
-                            <tr><th>Vuelo</th><th>Ruta</th><th>Salida</th><th>Llegada</th><th>Precio base</th><th></th></tr>
+                        <tr><th>Vuelo</th><th>Ruta</th><th>Salida</th><th>Llegada</th><th>Precio base</th><th></th></tr>
                         </thead>
                         <tbody id="filas-vuelos"></tbody>
                     </table>
@@ -80,6 +80,14 @@
             <div class="paso-titulo"><span class="paso-numero">4</span><h2>Pase de abordar y cobro</h2></div>
             <div class="paso-contenido" id="contenido-cobro">
                 <p class="ayuda">Aqui apareceran los boletos que agregues.</p>
+            </div>
+        </section>
+
+        <!-- Paso 5: imprimir los pases en la impresora termica -->
+        <section class="panel paso bloqueado" id="paso-imprimir">
+            <div class="paso-titulo"><span class="paso-numero">5</span><h2>Imprimir pases</h2></div>
+            <div class="paso-contenido" id="contenido-imprimir">
+                <p class="ayuda">Cuando cobres, aqui imprimes los pases en la impresora termica.</p>
             </div>
         </section>
     </main>
@@ -104,7 +112,8 @@
         asiento: null,
         reserva: null,
         boletos: [],               // [{ boleto, vuelo, asiento }]
-        pagada: false
+        pagada: false,
+        impreso: false             // ya se imprimieron los pases en la impresora termica
     };
 
     // ---------- Carga inicial ----------
@@ -139,6 +148,7 @@
         estado("paso-vuelo", !!venta.vuelo && !venta.pagada, !!venta.pasajero && !venta.pagada);
         estado("paso-asiento", false, !!venta.vuelo && !venta.pagada);
         estado("paso-cobro", venta.pagada, hayBoletos);
+        estado("paso-imprimir", venta.impreso, venta.pagada);
     }
 
     // ---------- Paso 1: pasajero ----------
@@ -377,11 +387,7 @@
         let pie;
         if (venta.pagada) {
             pie = `
-                ${capitanDice(`Listo. La reserva <strong>#${venta.reserva.idReserva}</strong> quedo pagada. Buen viaje para ${escapar(venta.pasajero.nombres)}.`)}
-                <div class="acciones" style="margin-top: 1rem;">
-                    <button class="boton boton-principal" onclick="location.reload()">Nueva venta</button>
-                    <a class="boton boton-secundario" href="reservas.html?id=${venta.reserva.idReserva}">Ver reserva</a>
-                </div>`;
+                ${capitanDice(`Listo. La reserva <strong>#${venta.reserva.idReserva}</strong> quedo pagada. Ahora imprime los pases de ${escapar(venta.pasajero.nombres)} en el paso 5.`)}`;
         } else {
             pie = `
                 <div class="cobro">
@@ -421,8 +427,63 @@
             mostrarMensaje("Pago registrado. Boletos pagados.");
             document.getElementById("contenido-asiento").innerHTML = `<p class="ayuda">Venta terminada.</p>`;
             pintarCobro();
+            pintarImpresion();
+            document.getElementById("paso-imprimir").scrollIntoView({ behavior: "smooth", block: "start" });
         } catch (e) {
             mostrarMensaje(e.message, "error");
+            boton.disabled = false;
+        }
+    }
+
+    // ---------- Paso 5: imprimir en la impresora termica ----------
+    function pintarImpresion() {
+        venta.pases = venta.boletos.map(b => datosImpresion({
+            boleto: b.boleto, vuelo: b.vuelo, asiento: b.asiento,
+            pasajero: venta.pasajero, ciudades, idReserva: venta.reserva.idReserva
+        }));
+        const cuantos = venta.pases.length === 1 ? "1 pase" : `${venta.pases.length} pases`;
+        document.getElementById("contenido-imprimir").innerHTML = `
+            <div class="impresion" id="impresion">
+                <div class="impresora-termica">
+                    <div class="boca-impresora" aria-hidden="true"></div>
+                    <div class="tickets">${venta.pases.map(ticketTermico).join("")}</div>
+                </div>
+                <div class="impresion-acciones">
+                    <div id="estado-impresora"></div>
+                    <p>Revisa el ticket y mandalo a la impresora. Sale un ticket por cada boleto, con la cara del capitan arriba.</p>
+                    <div class="acciones">
+                        <button class="boton boton-principal" id="boton-imprimir" onclick="imprimirVenta()">Imprimir ${cuantos}</button>
+                    </div>
+                    <div class="acciones">
+                        <button class="boton boton-secundario" onclick="location.reload()">Nueva venta</button>
+                        <a class="boton boton-secundario" href="reservas.html?id=${venta.reserva.idReserva}">Ver reserva</a>
+                    </div>
+                </div>
+            </div>`;
+        revisarImpresora("estado-impresora");
+        actualizarPasos();
+    }
+
+    async function imprimirVenta() {
+        const boton = document.getElementById("boton-imprimir");
+        const impresion = document.getElementById("impresion");
+        boton.disabled = true;
+        boton.textContent = "Imprimiendo...";
+        try {
+            const impresos = await imprimirPases(venta.pases);
+            venta.impreso = true;
+            // Los tickets "salen" de la impresora
+            impresion.classList.remove("imprimiendo");
+            void impresion.offsetWidth;
+            impresion.classList.add("imprimiendo");
+            mostrarMensaje(impresos === 1 ? "Pase impreso. Tung, tung, tung." : `${impresos} pases impresos. Tung, tung, tung.`);
+            boton.textContent = "Imprimir otra vez";
+            actualizarPasos();
+        } catch (e) {
+            mostrarMensaje(e.message, "error");
+            boton.textContent = "Intentar de nuevo";
+            revisarImpresora("estado-impresora");
+        } finally {
             boton.disabled = false;
         }
     }

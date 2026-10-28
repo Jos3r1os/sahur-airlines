@@ -8,7 +8,8 @@ const URLS = {
     pasajeros: "http://localhost:8082",
     vuelos: "http://localhost:8083",
     reservas: "http://localhost:8084",
-    pagos: "http://localhost:8085"
+    pagos: "http://localhost:8085",
+    impresora: "http://localhost:8086"   // impresora-service (Python) en la compu de la impresora
 };
 
 // Foto de la cara del capitan (la mascota)
