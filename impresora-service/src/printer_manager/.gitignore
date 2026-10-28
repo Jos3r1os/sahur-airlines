@@ -1,4 +1,3 @@
-
 # Tickets guardados en modo prueba
-impresora-service/**/salida/
+salida/
 __pycache__/

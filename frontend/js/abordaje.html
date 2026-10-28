@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Abordaje - Sahur Airlines</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=IBM+Plex+Mono:wght@500;600&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/estilos.css">
+    <link rel="stylesheet" href="css/abordaje.css">
+</head>
+<body>
+<div class="app">
+    <aside class="menu" id="menu"></aside>
+
+    <main class="contenido">
+        <div class="encabezado">
+            <div>
+                <h1>Abordaje</h1>
+                <p>Escanea el codigo de barras del pase o escribelo. Si esta pagado, el pasajero queda a bordo.</p>
+            </div>
+        </div>
+
+        <!-- Vuelo que se esta abordando y cuantos ya subieron -->
+        <section class="panel puerta">
+            <div class="campo">
+                <label for="vuelo">Vuelo que esta abordando</label>
+                <select id="vuelo"><option value="">Cualquier vuelo</option></select>
+            </div>
+            <div class="progreso" id="progreso" aria-live="polite"></div>
+        </section>
+
+        <div class="abordaje">
+            <div class="columna">
+                <!-- El lector de codigo de barras escribe el codigo y presiona Enter solo -->
+                <form class="panel lector" id="form-lector" autocomplete="off">
+                    <label for="codigo">Codigo del pase</label>
+                    <div class="lector-fila">
+                        <input id="codigo" placeholder="SAH-1A2B3C4D" spellcheck="false" autofocus>
+                        <button class="boton boton-principal" type="submit" id="boton-abordar">Abordar</button>
+                    </div>
+                    <p class="ayuda">Con lector de barras solo escanea: el codigo se escribe y se revisa solo.</p>
+                </form>
+
+                <section class="resultado" id="resultado" aria-live="assertive"></section>
+            </div>
+
+            <div class="columna">
+                <section class="panel" id="panel-faltan" hidden>
+                    <h2>Faltan por abordar</h2>
+                    <ul class="lista-pasajeros" id="faltan"></ul>
+                </section>
+
+                <section class="panel">
+                    <h2>Ultimos escaneos</h2>
+                    <ul class="lista-pasajeros" id="registro">
+                        <li class="vacio-lista">Aqui aparece cada pase que escanees.</li>
+                    </ul>
+                </section>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="js/api.js"></script>
+<script>
+    pintarMenu("abordaje.html");
+    const sesion = obtenerSesion();
+
+    let vuelos = {};          // idVuelo -> vuelo
+    const pasajeros = {};     // idPasajero -> pasajero
+    const asientos = {};      // idAsiento -> asiento
+    const ciudades = {};      // "GUA" -> "Ciudad de Guatemala"
+    const revisados = {};     // idBoleto -> boleto (para el boton "Abordar igual")
+    const registro = [];      // ultimos escaneos de esta sesion
+
+    const nombreDe = b => {
+        const p = pasajeros[b.idPasajero || (b.reserva && b.reserva.idPasajero)];
+        return p ? `${p.nombres || ""} ${p.apellidos || ""}`.trim() : "Pasajero sin nombre";
+    };
+    const asientoDe = b => asientos[b.idAsiento] ? asientos[b.idAsiento].numeroAsiento : "-";
+    const rutaDe = v => v ? `${v.ruta.aeropuertoOrigen} - ${v.ruta.aeropuertoDestino}` : "";
+
+    // ---------- Carga inicial ----------
+    async function iniciar() {
+        try {
+            const [listaVuelos, listaPasajeros, listaAsientos, aeropuertos] = await Promise.all([
+                api("vuelos", "/vuelos"),
+                api("pasajeros", "/pasajeros"),
+                api("vuelos", "/asientos"),
+                api("vuelos", "/aeropuertos")
+            ]);
+            listaPasajeros.forEach(p => pasajeros[p.idPasajero] = p);
+            listaAsientos.forEach(a => asientos[a.idAsiento] = a);
+            aeropuertos.forEach(a => ciudades[a.codigoIata] = a.ciudad);
+            listaVuelos.sort((a, b) => a.fechaSalida.localeCompare(b.fechaSalida));
+            listaVuelos.forEach(v => vuelos[v.idVuelo] = v);
+
+            const select = document.getElementById("vuelo");
+            select.innerHTML += listaVuelos.map(v =>
+                `<option value="${v.idVuelo}">${codigoVuelo(v.idVuelo)}  ${escapar(rutaDe(v))}, ${soloFecha(v.fechaSalida)} ${soloHora(v.fechaSalida)}</option>`
+            ).join("");
+
+            // Se elige solo el proximo vuelo en salir (o el que salio hace menos de 3 horas)
+            const limite = Date.now() - 3 * 60 * 60 * 1000;
+            const proximo = listaVuelos.find(v => new Date(v.fechaSalida).getTime() >= limite);
+            if (proximo) select.value = proximo.idVuelo;
+            await pintarProgreso();
+        } catch (e) {
+            mostrarMensaje(e.message, "error");
+        }
+        pintarResultado(null);
+        enfocar();
+    }
+
+    function enfocar() {
+        const campo = document.getElementById("codigo");
+        campo.value = "";
+        campo.focus();
+    }
+
+    // ---------- Progreso del vuelo elegido ----------
+    async function pintarProgreso() {
+        const idVuelo = Number(document.getElementById("vuelo").value) || null;
+        const progreso = document.getElementById("progreso");
+        const panelFaltan = document.getElementById("panel-faltan");
+        if (!idVuelo) {
+            progreso.innerHTML = `<p class="ayuda">Elige un vuelo para ver cuantos pasajeros ya subieron y quien falta.</p>`;
+            panelFaltan.hidden = true;
+            return;
+        }
+        try {
+            const boletos = await api("reservas", `/boletos/vuelo/${idVuelo}`);
+            const abordo = boletos.filter(b => b.estado === "USADO");
+            const faltan = boletos.filter(b => b.estado === "PAGADO")
+                .sort((a, b) => asientoDe(a).localeCompare(asientoDe(b), "es", { numeric: true }));
+            const sinPagar = boletos.filter(b => b.estado === "EMITIDO").length;
+            const esperados = abordo.length + faltan.length;
+            const porcentaje = esperados ? Math.round(abordo.length * 100 / esperados) : 0;
+            const v = vuelos[idVuelo];
+
+            progreso.innerHTML = `
+                <div class="progreso-texto">
+                    <strong>${abordo.length} de ${esperados}</strong> pasajeros a bordo del
+                    <span class="codigo">${codigoVuelo(idVuelo)}</span> a ${escapar(ciudades[v.ruta.aeropuertoDestino] || v.ruta.aeropuertoDestino)}
+                    ${sinPagar ? `<span class="secundario">${sinPagar} ${sinPagar === 1 ? "boleto sigue" : "boletos siguen"} sin pagar</span>` : ""}
+                </div>
+                <div class="barra-abordo" role="progressbar" aria-valuenow="${porcentaje}" aria-valuemin="0" aria-valuemax="100">
+                    <i style="width:${porcentaje}%"></i>
+                </div>`;
+
+            panelFaltan.hidden = false;
+            document.getElementById("faltan").innerHTML = faltan.length === 0
+                ? `<li class="vacio-lista">${esperados ? "Todos a bordo. Tung, tung, tung: listo para despegar." : "Este vuelo todavia no tiene boletos pagados."}</li>`
+                : faltan.map(b => `
+                    <li>
+                        <span class="asiento-chico">${escapar(asientoDe(b))}</span>
+                        <span>${escapar(nombreDe(b))}<span class="secundario">${escapar(b.codigoBoleto)}</span></span>
+                    </li>`).join("");
+        } catch (e) {
+            progreso.innerHTML = `<p class="ayuda texto-error">${escapar(e.message)}</p>`;
+        }
+    }
+
+    // ---------- Revisar un codigo ----------
+    async function revisarCodigo(texto) {
+        const codigo = texto.trim().toUpperCase();
+        if (!codigo) return;
+        const boton = document.getElementById("boton-abordar");
+        boton.disabled = true;
+        try {
+            const boletos = await api("reservas", "/boletos");
+            const b = boletos.find(x => (x.codigoBoleto || "").toUpperCase() === codigo);
+            const idVuelo = Number(document.getElementById("vuelo").value) || null;
+
+            if (!b) {
+                pintarResultado({ tipo: "error", titulo: "No existe ese pase",
+                    texto: `No hay ningun boleto con el codigo ${codigo}. Revisa que este bien escrito o escanealo de nuevo.` });
+                anotar(codigo, "No existe", "error");
+            } else if (b.estado === "USADO") {
+                pintarResultado({ tipo: "alerta", titulo: "Este pase ya abordo", boleto: b,
+                    texto: "El pasajero ya esta a bordo. Si es otra persona, revisa su documento." });
+                anotar(codigo, "Ya abordo", "alerta", b);
+            } else if (b.estado === "EMITIDO") {
+                pintarResultado({ tipo: "error", titulo: "Boleto sin pagar", boleto: b,
+                    texto: "Este boleto todavia no esta pagado. Manda al pasajero a cobrar en Reservas y pagos." });
+                anotar(codigo, "Sin pagar", "error", b);
+            } else if (b.estado === "CANCELADO") {
+                pintarResultado({ tipo: "error", titulo: "Boleto cancelado", boleto: b,
+                    texto: "Este boleto fue cancelado y no puede abordar." });
+                anotar(codigo, "Cancelado", "error", b);
+            } else if (idVuelo && b.idVuelo !== idVuelo) {
+                revisados[b.idBoleto] = b;
+                pintarResultado({ tipo: "alerta", titulo: "Es de otro vuelo", boleto: b, otroVuelo: true,
+                    texto: `Este pase es del ${codigoVuelo(b.idVuelo)}, no del ${codigoVuelo(idVuelo)} que esta abordando.` });
+                anotar(codigo, "Otro vuelo", "alerta", b);
+            } else {
+                await abordar(b);
+            }
+        } catch (e) {
+            mostrarMensaje(e.message, "error");
+        } finally {
+            boton.disabled = false;
+            enfocar();
+        }
+    }
+
+    // Marca el boleto como USADO (abordado) en reservas-service
+    async function abordar(b) {
+        await api("reservas", `/boletos/${b.idBoleto}/estado`, "POST", { estado: "USADO", usuario: sesion.usuario });
+        b.estado = "USADO";
+        pintarResultado({ tipo: "ok", boleto: b });
+        anotar(b.codigoBoleto, "A bordo", "ok", b);
+        await pintarProgreso();
+    }
+
+    async function abordarIgual(idBoleto) {
+        try {
+            await abordar(revisados[idBoleto]);
+        } catch (e) {
+            mostrarMensaje(e.message, "error");
+        }
+        enfocar();
+    }
+
+    // ---------- Tarjeta con el resultado ----------
+    function pintarResultado(r) {
+        const caja = document.getElementById("resultado");
+        if (!r) {
+            caja.className = "resultado";
+            caja.innerHTML = capitanDice("Escanea el primer pase y te digo si el pasajero puede subir.");
+            return;
+        }
+        const b = r.boleto;
+        const v = b ? vuelos[b.idVuelo] : null;
+        const datos = b ? `
+            <dl class="resultado-datos">
+                <div><dt>Pasajero</dt><dd>${escapar(nombreDe(b))}</dd></div>
+                <div><dt>Vuelo</dt><dd>${codigoVuelo(b.idVuelo)} ${escapar(rutaDe(v))}</dd></div>
+                <div><dt>Codigo</dt><dd>${escapar(b.codigoBoleto)}</dd></div>
+            </dl>` : "";
+
+        if (r.tipo === "ok") {
+            caja.className = "resultado resultado-ok";
+            caja.innerHTML = `
+                <div class="resultado-asiento"><span>Asiento</span><b>${escapar(asientoDe(b))}</b></div>
+                <div class="resultado-cuerpo">
+                    <h2>Bienvenido a bordo</h2>
+                    ${datos}
+                </div>
+                <div class="sello-abordo"><img src="${CARA_CAPITAN}" alt="">A bordo</div>`;
+            return;
+        }
+        caja.className = `resultado resultado-${r.tipo}`;
+        caja.innerHTML = `
+            <div class="resultado-cuerpo">
+                <h2>${escapar(r.titulo)}</h2>
+                <p>${escapar(r.texto)}</p>
+                ${datos}
+                ${r.otroVuelo ? `<div class="acciones"><button class="boton boton-secundario boton-chico" onclick="abordarIgual(${b.idBoleto})">Abordar igual</button></div>` : ""}
+            </div>`;
+    }
+
+    // ---------- Ultimos escaneos ----------
+    const CLASE_ESTADO = { ok: "estado-ok", alerta: "estado-alerta", error: "estado-error" };
+
+    function anotar(codigo, texto, tipo, b) {
+        registro.unshift({ hora: soloHora(new Date().toISOString()), codigo, texto, tipo, nombre: b ? nombreDe(b) : "" });
+        registro.splice(8);
+        document.getElementById("registro").innerHTML = registro.map(r => `
+            <li>
+                <span class="hora">${escapar(r.hora)}</span>
+                <span>${escapar(r.nombre || "Pase desconocido")}<span class="secundario">${escapar(r.codigo)}</span></span>
+                <span class="estado ${CLASE_ESTADO[r.tipo]}">${escapar(r.texto)}</span>
+            </li>`).join("");
+    }
+
+    // ---------- Eventos ----------
+    document.getElementById("form-lector").addEventListener("submit", e => {
+        e.preventDefault();
+        revisarCodigo(document.getElementById("codigo").value);
+    });
+    document.getElementById("vuelo").addEventListener("change", async () => {
+        await pintarProgreso();
+        enfocar();
+    });
+
+    iniciar();
+</script>
+</body>
+</html>

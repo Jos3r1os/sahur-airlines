@@ -1,0 +1,176 @@
+/* ============================================================
+   Abordaje: la puerta de embarque (se usa en abordaje.html)
+   ============================================================ */
+
+/* Vuelo elegido y cuantos pasajeros ya subieron */
+.puerta {
+    display: grid;
+    grid-template-columns: minmax(0, 380px) minmax(0, 1fr);
+    gap: 1rem 2rem;
+    align-items: end;
+}
+.puerta .campo { margin-bottom: 0; }
+.progreso { display: grid; gap: .55rem; padding-bottom: .2rem; }
+.progreso-texto { color: var(--tinta-suave); }
+.progreso-texto strong { color: var(--marino); font-size: 1.05rem; }
+.progreso-texto .secundario { margin-top: .15rem; }
+.barra-abordo {
+    height: 12px;
+    border-radius: 999px;
+    background: var(--hundido);
+    box-shadow: inset 1px 1px 3px var(--sombra-oscura);
+    overflow: hidden;
+}
+.barra-abordo i {
+    display: block;
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--madera-clara), var(--madera));
+    transition: width .6s var(--suave);
+}
+
+.abordaje {
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+    gap: 2rem;
+    align-items: start;
+}
+.columna { display: grid; gap: 2rem; align-content: start; min-width: 0; }
+.columna .panel { margin-bottom: 0; }
+
+/* ---------- Lector: un campo grande para el codigo ---------- */
+.lector label { display: block; font-weight: 500; font-size: .9rem; margin-bottom: .5rem; }
+.lector-fila { display: flex; gap: .75rem; }
+.lector input {
+    flex: 1;
+    min-width: 0;
+    min-height: 60px;
+    font-family: var(--letra-codigo), monospace;
+    font-size: 1.45rem;
+    font-weight: 600;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    padding: .5rem 1rem;
+    border: 1.5px solid transparent;
+    border-radius: var(--radio);
+    background-color: var(--hundido);
+    color: var(--marino);
+    box-shadow: var(--hundir);
+}
+.lector input::placeholder { color: var(--tenue); font-weight: 500; }
+.lector input:focus { outline: none; border-color: var(--madera-clara); box-shadow: var(--hundir), var(--anillo); }
+.lector .boton { min-height: 60px; padding: 0 1.6rem; font-size: 1.05rem; }
+
+/* ---------- Resultado del escaneo ---------- */
+.resultado { border-radius: var(--radio-grande); }
+.resultado h2 { margin-bottom: .4rem; }
+.resultado p { margin-bottom: .75rem; }
+
+/* Puede subir: tarjeta azul marino con el asiento en grande y el sello del capitan */
+.resultado-ok {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 1.5rem;
+    align-items: center;
+    background: var(--marino);
+    color: #fff;
+    padding: 1.5rem;
+    box-shadow: 8px 8px 20px rgba(13, 23, 51, .28), -8px -8px 20px #FFFFFF;
+    animation: llegar .45s var(--rebote);
+}
+.resultado-ok h2 { color: var(--dorado-claro); }
+.resultado-asiento {
+    display: grid;
+    place-items: center;
+    width: 112px;
+    height: 112px;
+    border-radius: 16px;
+    background: var(--marino-claro);
+    text-align: center;
+}
+.resultado-asiento span { font-size: .8rem; color: #9FAED2; align-self: end; }
+.resultado-asiento b {
+    font-family: var(--letra-codigo), monospace;
+    font-size: 2.6rem;
+    font-weight: 600;
+    line-height: 1;
+    color: var(--dorado-claro);
+    align-self: start;
+}
+.sello-abordo {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    border: 3px solid var(--dorado);
+    color: var(--dorado-claro);
+    border-radius: 999px;
+    padding: .25rem 1rem .25rem .25rem;
+    font-family: var(--letra-titulo), serif;
+    font-size: 1.4rem;
+    white-space: nowrap;
+    transform: rotate(-8deg);
+    animation: sello-abordo .5s var(--rebote) .2s both;
+}
+.sello-abordo img { width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--dorado); object-fit: cover; }
+
+/* No puede subir o hay que revisar: franja de color a la izquierda */
+.resultado-alerta, .resultado-error { padding: 1.4rem 1.5rem; }
+.resultado-alerta { background: var(--alerta-suave); box-shadow: inset 5px 0 0 var(--alerta); animation: llegar .35s var(--suave); }
+.resultado-alerta h2 { color: var(--alerta); }
+.resultado-error { background: var(--error-suave); box-shadow: inset 5px 0 0 var(--error); animation: sacudir .4s; }
+.resultado-error h2 { color: var(--error); }
+
+.resultado-datos { display: grid; gap: .35rem; margin: 0; }
+.resultado-datos div { display: flex; gap: .75rem; }
+.resultado-datos dt { min-width: 5.5rem; font-size: .85rem; opacity: .75; }
+.resultado-datos dd { margin: 0; font-weight: 600; }
+.resultado-ok .resultado-datos dd { font-size: 1.05rem; }
+
+@keyframes llegar {
+    from { transform: scale(.94); opacity: 0; }
+    to   { transform: none; opacity: 1; }
+}
+@keyframes sello-abordo {
+    from { transform: scale(2.2) rotate(-22deg); opacity: 0; }
+    to   { transform: rotate(-8deg); opacity: 1; }
+}
+
+/* ---------- Listas: quien falta y ultimos escaneos ---------- */
+.lista-pasajeros { list-style: none; margin: 0; padding: 0; }
+.lista-pasajeros li {
+    display: flex;
+    align-items: center;
+    gap: .85rem;
+    padding: .7rem 0;
+    border-bottom: 1px solid var(--linea);
+}
+.lista-pasajeros li:last-child { border-bottom: none; }
+.lista-pasajeros li > span:nth-child(2) { flex: 1; min-width: 0; }
+.lista-pasajeros .vacio-lista { color: var(--tinta-suave); }
+.asiento-chico {
+    display: grid;
+    place-items: center;
+    min-width: 44px;
+    height: 36px;
+    padding: 0 .4rem;
+    border-radius: 9px 9px 5px 5px;
+    background: var(--crema);
+    font-family: var(--letra-codigo), monospace;
+    font-weight: 600;
+    color: var(--marino);
+}
+.hora { font-family: var(--letra-codigo), monospace; font-size: .85rem; color: var(--tinta-suave); min-width: 3.2rem; }
+#panel-faltan .lista-pasajeros { max-height: 420px; overflow-y: auto; }
+
+@media (max-width: 1050px) {
+    .abordaje { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 640px) {
+    .puerta { grid-template-columns: minmax(0, 1fr); }
+    .lector-fila { flex-direction: column; }
+    .resultado-ok { grid-template-columns: auto minmax(0, 1fr); }
+    .sello-abordo { grid-column: 1 / -1; justify-self: start; }
+    .resultado-asiento { width: 88px; height: 88px; }
+    .resultado-asiento b { font-size: 2rem; }
+    .resultado-datos div { flex-direction: column; gap: 0; }
+}

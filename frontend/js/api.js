@@ -83,6 +83,7 @@ const ICONOS = {
     personas: `<circle cx="9" cy="8" r="3.2"/><path d="M3.5 19.5a5.5 5.5 0 0 1 11 0"/><path d="M16 5.2a3 3 0 0 1 0 5.6M17.6 14a5 5 0 0 1 3 5.5"/>`,
     avion: `<path d="M21 15.5v-2l-8-5V4.2a1.5 1.5 0 0 0-3 0v4.3l-8 5v2l8-2.5V18l-2.2 1.6V21l3.7-1 3.7 1v-1.4L13 18v-5z"/>`,
     torre: `<path d="M9.5 21 10.5 12h3l1 9"/><path d="M6.5 8h11L16 12H8z"/><path d="M12 8V4.5M10 4.5h4"/><path d="M5 21h14"/>`,
+    puerta: `<path d="M6 20.5V4.8A1.3 1.3 0 0 1 7.3 3.5h9.4a1.3 1.3 0 0 1 1.3 1.3v15.7"/><path d="M3.5 20.5h17"/><path d="M14.5 12v.5"/>`,
     gafete: `<rect x="5" y="3.5" width="14" height="17" rx="2.5"/><circle cx="12" cy="10.5" r="2.5"/><path d="M8.5 17.5a3.5 3.5 0 0 1 7 0"/><path d="M10 6.5h4"/>`
 };
 
@@ -95,6 +96,7 @@ const PAGINAS = [
     { archivo: "inicio.html", nombre: "Inicio", icono: "inicio" },
     { archivo: "vender.html", nombre: "Vender boleto", icono: "boleto" },
     { archivo: "reservas.html", nombre: "Reservas y pagos", icono: "recibo" },
+    { archivo: "abordaje.html", nombre: "Abordaje", icono: "puerta" },
     { archivo: "reportes.html", nombre: "Consultas y reportes", icono: "grafica" },
     { archivo: "pasajeros.html", nombre: "Pasajeros", icono: "personas" },
     { archivo: "vuelos.html", nombre: "Vuelos", icono: "avion" },
