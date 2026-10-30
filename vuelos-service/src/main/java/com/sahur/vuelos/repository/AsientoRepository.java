@@ -14,9 +14,7 @@ public interface AsientoRepository extends JpaRepository<Asiento, Long> {
 
     boolean existsByTipoClaseIdClase(Long idClase);
 
-    // Para no repetir el numero de asiento dentro del mismo avion
     boolean existsByAvionIdAvionAndNumeroAsientoIgnoreCase(Long idAvion, String numeroAsiento);
 
-    // Para modificar: mismo numero en el mismo avion pero con otro id
     boolean existsByAvionIdAvionAndNumeroAsientoIgnoreCaseAndIdAsientoNot(Long idAvion, String numeroAsiento, Long idAsiento);
 }

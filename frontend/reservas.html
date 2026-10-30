@@ -22,10 +22,8 @@
             <a class="boton boton-principal" href="vender.html">Vender boleto</a>
         </div>
 
-        <!-- Resumen de ventas que da el capitan -->
         <div class="informe" id="informe"></div>
 
-        <!-- Lista de reservas -->
         <section class="panel">
             <div class="filtros">
                 <div class="campo">
@@ -52,10 +50,8 @@
             </div>
         </section>
 
-        <!-- Detalle de la reserva elegida -->
         <section class="panel" id="detalle" hidden></section>
 
-        <!-- Historial de un boleto -->
         <section class="panel" id="historial" hidden></section>
     </main>
 </div>
@@ -66,7 +62,6 @@
     pintarMenu("reservas.html");
     const sesion = obtenerSesion();
 
-    // Datos de los otros servicios, guardados por id para buscarlos rapido
     let reservas = [];
     const pasajeros = {};
     const empleados = {};
@@ -74,11 +69,10 @@
     const asientos = {};
     const ciudades = {};
 
-    let reservaActual = null;   // la reserva que se esta viendo
+    let reservaActual = null;
     let boletosActuales = [];
     let pagosActuales = [];
 
-    // ---------- Carga inicial ----------
     async function iniciar() {
         try {
             const [listaPasajeros, listaEmpleados, listaVuelos, listaAsientos, aeropuertos] = await Promise.all([
@@ -96,7 +90,6 @@
 
             await cargarReservas();
 
-            // Si vienen de otra pantalla con ?id=5, abrir esa reserva
             const id = new URLSearchParams(location.search).get("id");
             if (id) verReserva(Number(id));
         } catch (e) {
@@ -115,7 +108,6 @@
         return p ? `${p.nombres || ""} ${p.apellidos || ""}`.trim() || p.numeroDocumento : `Pasajero ${id}`;
     }
 
-    // ---------- Resumen del capitan ----------
     function pintarInforme() {
         const cuenta = estado => reservas.filter(r => r.estado === estado).length;
         const vendido = reservas.filter(r => r.estado === "PAGADA")
@@ -129,7 +121,6 @@
         );
     }
 
-    // ---------- Lista ----------
     function pintarLista() {
         const texto = document.getElementById("buscar").value.trim().toLowerCase().replace("#", "");
         const estado = document.getElementById("filtro-estado").value;
@@ -161,7 +152,6 @@
             </tr>`).join("");
     }
 
-    // ---------- Detalle ----------
     async function verReserva(id) {
         const detalle = document.getElementById("detalle");
         document.getElementById("historial").hidden = true;
@@ -184,7 +174,6 @@
         }
     }
 
-    // Vuelve a imprimir el pase de un boleto en la impresora termica
     async function imprimirBoleto(idBoleto, boton) {
         const b = boletosActuales.find(x => x.idBoleto === idBoleto);
         boton.disabled = true;
@@ -208,7 +197,6 @@
         const pasajero = pasajeros[r.idPasajero];
         const vendedor = empleados[r.idEmpleado];
 
-        // Pases de abordar con sus acciones
         const pases = boletosActuales.length === 0
             ? capitanDice("Esta reserva no tiene boletos.")
             : boletosActuales.map(b => {
@@ -229,7 +217,6 @@
                         </div>`;
             }).join("");
 
-        // Pagos de la reserva
         const filasPagos = pagosActuales.length === 0
             ? `<tr><td colspan="6" class="ayuda">Sin pagos registrados.</td></tr>`
             : pagosActuales.map(p => `
@@ -243,7 +230,6 @@
                 ? `<button class="boton boton-peligro boton-chico" onclick="reembolsar(${p.idPago})">Reembolsar</button>` : ""}</td>
                 </tr>`).join("");
 
-        // Lo que se puede hacer segun el estado de la reserva
         let acciones = "";
         if (r.estado === "PENDIENTE") {
             acciones = `
@@ -307,14 +293,12 @@
         pintarLista();
     }
 
-    // Vuelve a leer la reserva y la lista despues de un cambio
     async function refrescar() {
         const id = reservaActual.idReserva;
         await cargarReservas();
         await verReserva(id);
     }
 
-    // ---------- Acciones ----------
     async function cobrar() {
         const boton = document.getElementById("boton-cobrar");
         boton.disabled = true;
@@ -369,7 +353,6 @@
         }
     }
 
-    // ---------- Historial de un boleto ----------
     async function verHistorial(idBoleto) {
         const panel = document.getElementById("historial");
         const b = boletosActuales.find(x => x.idBoleto === idBoleto);
@@ -400,7 +383,6 @@
         }
     }
 
-    // ---------- Eventos ----------
     document.getElementById("buscar").addEventListener("input", pintarLista);
     document.getElementById("filtro-estado").addEventListener("change", pintarLista);
 

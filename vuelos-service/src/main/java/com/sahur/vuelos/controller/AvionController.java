@@ -44,7 +44,6 @@ public class AvionController {
 
     @PostMapping
     public ResponseEntity<?> crear(@RequestBody Avion avion) {
-        // Si no mandan estado, el avion nuevo queda ACTIVO
         if (vacio(avion.getEstado())) {
             avion.setEstado("ACTIVO");
         }
@@ -61,7 +60,6 @@ public class AvionController {
         return ResponseEntity.ok(repository.save(avion));
     }
 
-    // Modificar: PUT /aviones/1
     @PutMapping("/{id}")
     public ResponseEntity<?> modificar(@PathVariable Long id, @RequestBody Avion datos) {
         Optional<Avion> encontrado = repository.findById(id);
@@ -76,7 +74,6 @@ public class AvionController {
         if (repository.existsByMatriculaAndIdAvionNot(matricula, id)) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body("Ya existe otro avion con esa matricula");
         }
-        // La capacidad no puede quedar por debajo de los asientos que ya tiene registrados
         long asientos = asientoRepository.countByAvionIdAvion(id);
         if (datos.getCapacidad() < asientos) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
@@ -91,8 +88,6 @@ public class AvionController {
         return ResponseEntity.ok(repository.save(avion));
     }
 
-    // Eliminar: DELETE /aviones/1
-    // No se elimina si tiene vuelos o asientos; en ese caso se pone INACTIVO con PUT
     @DeleteMapping("/{id}")
     public ResponseEntity<?> eliminar(@PathVariable Long id) {
         if (!repository.existsById(id)) {
@@ -110,7 +105,6 @@ public class AvionController {
         return ResponseEntity.ok("Avion eliminado");
     }
 
-    // Reglas para crear y modificar. Devuelve el mensaje de error, o null si todo esta bien.
     private String validar(Avion a) {
         if (vacio(a.getMatricula())) {
             return "La matricula es obligatoria";

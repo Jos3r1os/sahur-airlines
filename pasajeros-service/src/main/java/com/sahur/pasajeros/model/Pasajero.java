@@ -20,8 +20,6 @@ public class Pasajero {
     @Column(name = "numero_documento", nullable = false, unique = true)
     private String numeroDocumento;
 
-    // Campos nuevos: quedan opcionales en Oracle porque la tabla ya tiene datos.
-    // Que sean obligatorios lo valida el controller.
     @Column(name = "nombres", length = 100)
     private String nombres;
 

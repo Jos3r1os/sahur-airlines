@@ -31,11 +31,8 @@ import java.util.UUID;
 @RequestMapping("/boletos")
 public class BoletoController {
 
-    // Solo se venden boletos de vuelos en estos estados
     private static final Set<String> ESTADOS_VUELO_VENTA = Set.of("PROGRAMADO", "RETRASADO");
 
-    // Cambios de estado que se pueden hacer a mano.
-    // A PAGADO no se llega desde aqui: solo cuando se registra el pago en pagos-service.
     private static final Map<String, Set<String>> CAMBIOS_PERMITIDOS = Map.of(
             "EMITIDO", Set.of("CANCELADO"),
             "PAGADO", Set.of("USADO", "CANCELADO"),
@@ -73,7 +70,6 @@ public class BoletoController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // Historial de cambios de un boleto: GET /boletos/1/historial
     @GetMapping("/{id}/historial")
     public ResponseEntity<?> historial(@PathVariable Long id) {
         if (!boletoRepository.existsById(id)) {
@@ -82,20 +78,16 @@ public class BoletoController {
         return ResponseEntity.ok(historialRepository.findByBoletoIdBoletoOrderByIdHistorialAsc(id));
     }
 
-    // Boletos vendidos de un vuelo: GET /boletos/vuelo/1
     @GetMapping("/vuelo/{idVuelo}")
     public List<Boleto> porVuelo(@PathVariable Long idVuelo) {
         return boletoRepository.findByIdVuelo(idVuelo);
     }
 
-    // Boletos de un pasajero: GET /boletos/pasajero/1
     @GetMapping("/pasajero/{idPasajero}")
     public List<Boleto> porPasajero(@PathVariable Long idPasajero) {
         return boletoRepository.findByIdPasajero(idPasajero);
     }
 
-    // Asientos libres de un vuelo: GET /boletos/vuelo/1/asientos-disponibles
-    // Los asientos estan en vuelos-service y los boletos aqui, por eso se combinan en este servicio
     @GetMapping("/vuelo/{idVuelo}/asientos-disponibles")
     public ResponseEntity<?> asientosDisponibles(@PathVariable Long idVuelo) {
         VueloDto vuelo = servicios.obtenerVuelo(idVuelo);
@@ -117,7 +109,6 @@ public class BoletoController {
         return ResponseEntity.ok(disponibles);
     }
 
-    // Emitir boleto: POST /boletos con {"idReserva":1, "idVuelo":1, "idAsiento":1, "usuario":"admin"}
     @PostMapping
     @Transactional
     public ResponseEntity<?> emitir(@RequestBody BoletoRequest request) {
@@ -126,7 +117,6 @@ public class BoletoController {
                     .body("idReserva, idVuelo e idAsiento son obligatorios");
         }
 
-        // 1. La reserva debe existir y estar PENDIENTE
         Optional<Reserva> reserva = reservaRepository.findById(request.getIdReserva());
         if (reserva.isEmpty()) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("La reserva no existe");
@@ -136,7 +126,6 @@ public class BoletoController {
                     .body("Solo se pueden agregar boletos a una reserva PENDIENTE (esta " + reserva.get().getEstado() + ")");
         }
 
-        // 2. El vuelo debe existir, estar a la venta y no haber salido
         VueloDto vuelo = servicios.obtenerVuelo(request.getIdVuelo());
         if (vuelo == null) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("El vuelo no existe");
@@ -152,7 +141,6 @@ public class BoletoController {
             return ResponseEntity.status(HttpStatus.CONFLICT).body("El vuelo no tiene precio base");
         }
 
-        // 3. El asiento debe existir y ser del avion de ese vuelo
         AsientoDto asiento = servicios.obtenerAsiento(request.getIdAsiento());
         if (asiento == null) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("El asiento no existe");
@@ -162,14 +150,12 @@ public class BoletoController {
                     .body("El asiento no pertenece al avion de este vuelo");
         }
 
-        // 4. El asiento no debe estar ocupado en ese vuelo
         if (boletoRepository.existsByIdVueloAndIdAsientoAndEstadoNot(
                 request.getIdVuelo(), request.getIdAsiento(), "CANCELADO")) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
                     .body("Ese asiento ya esta ocupado en este vuelo");
         }
 
-        // Todo bien: armamos el boleto
         Boleto boleto = new Boleto();
         boleto.setReserva(reserva.get());
         boleto.setIdVuelo(request.getIdVuelo());
@@ -180,14 +166,12 @@ public class BoletoController {
         boleto.setEstado("EMITIDO");
         Boleto guardado = boletoRepository.save(boleto);
 
-        // Primer registro del historial y nuevo total de la reserva
         reservaService.registrarHistorial(guardado, null, "EMITIDO", request.getUsuario());
         reservaService.recalcularTotal(reserva.get());
 
         return ResponseEntity.ok(guardado);
     }
 
-    // Cambiar el estado: POST /boletos/1/estado con {"estado":"CANCELADO", "usuario":"admin"}
     @PostMapping("/{id}/estado")
     @Transactional
     public ResponseEntity<?> cambiarEstado(@PathVariable Long id, @RequestBody EstadoRequest request) {
@@ -217,14 +201,12 @@ public class BoletoController {
 
         reservaService.cambiarEstado(boleto, nuevo, request.getUsuario());
 
-        // Si la reserva aun no se paga, su total cambia (un boleto cancelado ya no se cobra)
         if ("PENDIENTE".equals(boleto.getReserva().getEstado())) {
             reservaService.recalcularTotal(boleto.getReserva());
         }
         return ResponseEntity.ok(boleto);
     }
 
-    // Precio = precio base del vuelo + porcentaje de recargo de la clase del asiento
     private BigDecimal calcularPrecio(BigDecimal precioBase, TipoClaseDto clase) {
         double recargo = (clase == null || clase.getPorcentajeRecargo() == null) ? 0 : clase.getPorcentajeRecargo();
         BigDecimal factor = BigDecimal.ONE.add(BigDecimal.valueOf(recargo).divide(BigDecimal.valueOf(100)));

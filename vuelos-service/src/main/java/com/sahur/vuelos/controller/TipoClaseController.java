@@ -48,7 +48,6 @@ public class TipoClaseController {
         return ResponseEntity.ok(repository.save(tipoClase));
     }
 
-    // Modificar: PUT /clases/1
     @PutMapping("/{id}")
     public ResponseEntity<?> modificar(@PathVariable Long id, @RequestBody TipoClase datos) {
         Optional<TipoClase> encontrada = repository.findById(id);
@@ -68,7 +67,6 @@ public class TipoClaseController {
         return ResponseEntity.ok(repository.save(tipoClase));
     }
 
-    // Eliminar: DELETE /clases/1
     @DeleteMapping("/{id}")
     public ResponseEntity<?> eliminar(@PathVariable Long id) {
         if (!repository.existsById(id)) {
@@ -82,7 +80,6 @@ public class TipoClaseController {
         return ResponseEntity.ok("Clase eliminada");
     }
 
-    // Reglas para crear y modificar. Devuelve el mensaje de error, o null si todo esta bien.
     private String validar(TipoClase c) {
         if (c.getNombre() == null || c.getNombre().isBlank()) {
             return "El nombre es obligatorio";

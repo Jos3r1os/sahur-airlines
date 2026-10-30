@@ -1,21 +1,9 @@
-// ============================================================
-// Pase de abordar (se usa en vender.html y reservas.html)
-// ============================================================
-
-// Dibuja un boleto como pase de abordar.
-// datos = { boleto, vuelo, asiento, pasajero, ciudades }
-//   boleto:   { codigoBoleto, precio, estado }
-//   vuelo:    { idVuelo, ruta: { aeropuertoOrigen, aeropuertoDestino }, fechaSalida }
-//   asiento:  { numeroAsiento, ubicacion, tipoClase: { nombre } }   (puede venir vacio)
-//   pasajero: { nombres, apellidos }                                (puede venir vacio)
-//   ciudades: { "GUA": "Ciudad de Guatemala", ... }
 function paseDeAbordar({ boleto, vuelo, asiento, pasajero, ciudades }) {
     const origen = vuelo ? vuelo.ruta.aeropuertoOrigen : "---";
     const destino = vuelo ? vuelo.ruta.aeropuertoDestino : "---";
     const nombre = pasajero ? `${pasajero.nombres || ""} ${pasajero.apellidos || ""}`.trim() : "";
     const clase = asiento && asiento.tipoClase ? asiento.tipoClase.nombre : "";
 
-    // El sello del capitan solo aparece cuando el boleto ya esta pagado (o usado)
     let marca;
     if (boleto.estado === "PAGADO" || boleto.estado === "USADO") {
         const texto = boleto.estado === "USADO" ? "Abordado" : "Pagado";
@@ -50,23 +38,16 @@ function paseDeAbordar({ boleto, vuelo, asiento, pasajero, ciudades }) {
     </article>`;
 }
 
-// Precio que tendra el boleto: precio base del vuelo + recargo de la clase
-// (el precio real lo calcula reservas-service; esto es solo para mostrarlo antes)
 function precioEstimado(vuelo, asiento) {
     const recargo = asiento && asiento.tipoClase ? Number(asiento.tipoClase.porcentajeRecargo || 0) : 0;
     return Math.round(Number(vuelo.precioBase) * (1 + recargo / 100) * 100) / 100;
 }
-// ============================================================
-// Impresora termica (impresora-service, puerto 8086)
-// ============================================================
 
-// Hora en 24 horas para el ticket: "09:40"
 function hora24(iso) {
     if (!iso) return "";
     return new Date(iso).toLocaleTimeString("es-GT", { hour: "2-digit", minute: "2-digit", hour12: false });
 }
 
-// Lo que la impresora necesita de un boleto (todo ya como texto listo para imprimir)
 function datosImpresion({ boleto, vuelo, asiento, pasajero, ciudades, idReserva }) {
     const origen = vuelo ? vuelo.ruta.aeropuertoOrigen : "";
     const destino = vuelo ? vuelo.ruta.aeropuertoDestino : "";
@@ -88,13 +69,11 @@ function datosImpresion({ boleto, vuelo, asiento, pasajero, ciudades, idReserva 
     };
 }
 
-// Manda los pases a la impresora. Lanza un Error con un mensaje claro si algo falla.
 async function imprimirPases(pases) {
     const respuesta = await api("impresora", "/imprimir/pases", "POST", { pases });
     return respuesta.impresos;
 }
 
-// Pinta en el elemento la etiqueta con el estado de la impresora
 async function revisarImpresora(idElemento) {
     const caja = document.getElementById(idElemento);
     if (!caja) return;
@@ -114,7 +93,6 @@ async function revisarImpresora(idElemento) {
     }
 }
 
-// Vista previa del ticket tal como sale de la impresora termica
 function ticketTermico(p) {
     const fila = (etiqueta, valor) => `<div><dt>${etiqueta}</dt><dd>${escapar(valor)}</dd></div>`;
     return `

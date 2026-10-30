@@ -21,7 +21,6 @@
             </div>
         </div>
 
-        <!-- Vuelo que se esta abordando y cuantos ya subieron -->
         <section class="panel puerta">
             <div class="campo">
                 <label for="vuelo">Vuelo que esta abordando</label>
@@ -32,7 +31,6 @@
 
         <div class="abordaje">
             <div class="columna">
-                <!-- El lector de codigo de barras escribe el codigo y presiona Enter solo -->
                 <form class="panel lector" id="form-lector" autocomplete="off">
                     <label for="codigo">Codigo del pase</label>
                     <div class="lector-fila">
@@ -67,12 +65,12 @@
     pintarMenu("abordaje.html");
     const sesion = obtenerSesion();
 
-    let vuelos = {};          // idVuelo -> vuelo
-    const pasajeros = {};     // idPasajero -> pasajero
-    const asientos = {};      // idAsiento -> asiento
-    const ciudades = {};      // "GUA" -> "Ciudad de Guatemala"
-    const revisados = {};     // idBoleto -> boleto (para el boton "Abordar igual")
-    const registro = [];      // ultimos escaneos de esta sesion
+    let vuelos = {};
+    const pasajeros = {};
+    const asientos = {};
+    const ciudades = {};
+    const revisados = {};
+    const registro = [];
 
     const nombreDe = b => {
         const p = pasajeros[b.idPasajero || (b.reserva && b.reserva.idPasajero)];
@@ -81,7 +79,6 @@
     const asientoDe = b => asientos[b.idAsiento] ? asientos[b.idAsiento].numeroAsiento : "-";
     const rutaDe = v => v ? `${v.ruta.aeropuertoOrigen} - ${v.ruta.aeropuertoDestino}` : "";
 
-    // ---------- Carga inicial ----------
     async function iniciar() {
         try {
             const [listaVuelos, listaPasajeros, listaAsientos, aeropuertos] = await Promise.all([
@@ -101,7 +98,6 @@
                 `<option value="${v.idVuelo}">${codigoVuelo(v.idVuelo)}  ${escapar(rutaDe(v))}, ${soloFecha(v.fechaSalida)} ${soloHora(v.fechaSalida)}</option>`
             ).join("");
 
-            // Se elige solo el proximo vuelo en salir (o el que salio hace menos de 3 horas)
             const limite = Date.now() - 3 * 60 * 60 * 1000;
             const proximo = listaVuelos.find(v => new Date(v.fechaSalida).getTime() >= limite);
             if (proximo) select.value = proximo.idVuelo;
@@ -119,7 +115,6 @@
         campo.focus();
     }
 
-    // ---------- Progreso del vuelo elegido ----------
     async function pintarProgreso() {
         const idVuelo = Number(document.getElementById("vuelo").value) || null;
         const progreso = document.getElementById("progreso");
@@ -162,7 +157,6 @@
         }
     }
 
-    // ---------- Revisar un codigo ----------
     async function revisarCodigo(texto) {
         const codigo = texto.trim().toUpperCase();
         if (!codigo) return;
@@ -205,7 +199,6 @@
         }
     }
 
-    // Marca el boleto como USADO (abordado) en reservas-service
     async function abordar(b) {
         await api("reservas", `/boletos/${b.idBoleto}/estado`, "POST", { estado: "USADO", usuario: sesion.usuario });
         b.estado = "USADO";
@@ -223,7 +216,6 @@
         enfocar();
     }
 
-    // ---------- Tarjeta con el resultado ----------
     function pintarResultado(r) {
         const caja = document.getElementById("resultado");
         if (!r) {
@@ -261,7 +253,6 @@
             </div>`;
     }
 
-    // ---------- Ultimos escaneos ----------
     const CLASE_ESTADO = { ok: "estado-ok", alerta: "estado-alerta", error: "estado-error" };
 
     function anotar(codigo, texto, tipo, b) {
@@ -275,7 +266,6 @@
             </li>`).join("");
     }
 
-    // ---------- Eventos ----------
     document.getElementById("form-lector").addEventListener("submit", e => {
         e.preventDefault();
         revisarCodigo(document.getElementById("codigo").value);

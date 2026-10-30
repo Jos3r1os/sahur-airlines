@@ -19,7 +19,7 @@ public class ReservasClient {
         this.reservasUrl = reservasUrl;
     }
 
-    // El vuelo ya tiene boletos vendidos? (GET /boletos/vuelo/{id} en reservas-service)
+
     public boolean vueloTieneBoletos(Long idVuelo) {
         List<?> boletos = restClient.get()
                 .uri(reservasUrl + "/boletos/vuelo/" + idVuelo)
@@ -28,7 +28,7 @@ public class ReservasClient {
         return boletos != null && !boletos.isEmpty();
     }
 
-    // El asiento aparece en algun boleto? (revisa la lista de boletos de reservas-service)
+
     public boolean asientoTieneBoletos(Long idAsiento) {
         List<Map<String, Object>> boletos = restClient.get()
                 .uri(reservasUrl + "/boletos")

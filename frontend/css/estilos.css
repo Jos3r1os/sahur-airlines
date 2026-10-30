@@ -1,31 +1,15 @@
-/* ============================================================
-   Sahur Airlines - estilos de todas las pantallas
-   Concepto: "El capitan de madera en la terminal".
-   Se toma la calidez de CafeBlend (crema, relieve suave, formas
-   redondas) y se viste con el uniforme del Capitan Sahur:
-   - Crema de terminal: fondo de la pagina
-   - Madera del capitan: botones principales
-   - Azul marino del uniforme: menu, tablero y pase de abordar
-   - Dorado de las insignias: lo activo, sellos y foco
-   Tipografia: DM Serif Display (titulos), Work Sans (texto),
-               IBM Plex Mono (codigos de vuelo, reservas, precios)
-   ============================================================ */
-
 :root {
-    /* Terminal (fondos) */
-    --lino: #F4EDE2;           /* fondo de la pagina */
-    --crema: #FAF3E8;          /* botones secundarios, filas al pasar */
-    --hundido: #EFE5D6;        /* campos de texto (relieve hundido) */
+    --lino: #F4EDE2;
+    --crema: #FAF3E8;
+    --hundido: #EFE5D6;
     --hundido-hover: #EAE0D0;
-    --papel: #FFFFFF;          /* paneles */
+    --papel: #FFFFFF;
 
-    /* El capitan */
     --madera: #8B5E3C;
     --madera-honda: #6B4226;
     --madera-clara: #C4956A;
     --madera-palida: #F1E3D2;
 
-    /* Uniforme */
     --marino: #15234D;
     --marino-hondo: #0D1733;
     --marino-claro: #24376B;
@@ -33,14 +17,12 @@
     --dorado-claro: #F2D48A;
     --dorado-palido: #F8ECCB;
 
-    /* Texto y lineas (siempre calidos, nada de grises frios) */
     --tinta: #2F2118;
     --tinta-suave: #6D5646;
     --tenue: #9A8775;
     --linea: #E8DDD0;
     --linea-fuerte: #D9CCBA;
 
-    /* Estados */
     --ok: #047857;
     --ok-suave: #DCFCE7;
     --alerta: #B45309;
@@ -50,7 +32,6 @@
     --error-suave: #FEE2E2;
     --info: #6366F1;
 
-    /* Relieve (neumorfismo calido) */
     --sombra-oscura: #D9CCBA;
     --relieve: 7px 7px 16px var(--sombra-oscura), -7px -7px 16px #FFFFFF;
     --relieve-chico: 3px 3px 7px var(--sombra-oscura), -3px -3px 7px #FFFFFF;
@@ -112,7 +93,6 @@ img { max-width: 100%; }
 
 strong { font-weight: 600; }
 
-/* Lo que tiene el atributo hidden siempre se oculta (aunque tenga una clase como .boton) */
 [hidden] { display: none !important; }
 
 :focus-visible {
@@ -123,10 +103,6 @@ strong { font-weight: 600; }
 
 ::selection { background: var(--dorado-claro); color: var(--tinta); }
 
-/* ============================================================
-   El capitan habla: cara redonda + globo de texto
-   Cada vez que aparece, el capitan toca tres veces: tung, tung, tung
-   ============================================================ */
 
 .capitan {
     display: flex;
@@ -160,7 +136,6 @@ strong { font-weight: 600; }
 }
 .globo strong { color: var(--madera-honda); }
 
-/* Colita del globo apuntando al capitan */
 .globo::before {
     content: "";
     position: absolute;
@@ -173,7 +148,6 @@ strong { font-weight: 600; }
     border-radius: 2px;
 }
 
-/* Tung, tung, tung: el capitan baja la cabeza tres veces como si tocara el tambor */
 @keyframes tung-tung-tung {
     0%   { transform: translateY(-10px) scale(.7); opacity: 0; }
     18%  { transform: none; opacity: 1; }
@@ -189,18 +163,13 @@ strong { font-weight: 600; }
     to   { transform: none; opacity: 1; }
 }
 
-/* Version pequena para listas vacias (va dentro de paneles blancos: sin relieve) */
 .vacio .capitan { justify-content: center; text-align: left; }
 .vacio .capitan img { width: 46px; height: 46px; border-width: 2px; box-shadow: 0 0 0 2px var(--marino); }
 .vacio .globo { background: var(--crema); box-shadow: none; }
 
-/* Dentro de un panel blanco el relieve no se ve: el globo pasa a crema plano */
 .panel .globo { background: var(--crema); box-shadow: none; }
 .panel .capitan img { box-shadow: 0 0 0 3px var(--marino); }
 
-/* ============================================================
-   Estructura: menu lateral (el saco del capitan) + contenido
-   ============================================================ */
 
 .app {
     display: grid;
@@ -223,7 +192,6 @@ strong { font-weight: 600; }
     scrollbar-color: var(--marino-claro) transparent;
 }
 
-/* ---------- Marca: cara del capitan + nombre ---------- */
 
 .marca {
     display: flex;
@@ -259,7 +227,6 @@ strong { font-weight: 600; }
     margin-top: .3rem;
 }
 
-/* ---------- Navegacion: letreros de aeropuerto ---------- */
 
 .menu nav {
     display: flex;
@@ -280,7 +247,6 @@ strong { font-weight: 600; }
     transition: background-color .2s, color .2s;
 }
 
-/* Pictograma en un cuadro, como la senalizacion de la terminal */
 .menu nav .icono {
     width: 34px;
     height: 34px;
@@ -308,7 +274,6 @@ strong { font-weight: 600; }
     color: var(--marino);
 }
 
-/* ---------- Usuario: la manga del capitan con sus 4 franjas doradas ---------- */
 
 .usuario {
     margin-top: auto;
@@ -348,7 +313,6 @@ strong { font-weight: 600; }
 }
 .usuario button:hover { border-color: var(--dorado); background: rgba(217, 169, 63, .14); }
 
-/* ---------- Contenido ---------- */
 
 .contenido {
     padding: 2.5rem 3rem 4rem;
@@ -369,11 +333,9 @@ strong { font-weight: 600; }
 .encabezado p { color: var(--tinta-suave); margin: 0; font-size: 1.02rem; }
 .encabezado h2 { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; }
 
-/* Resumen del capitan arriba de la pagina */
 .informe { margin-bottom: 2.25rem; }
 .informe .globo { font-size: 1.05rem; }
 
-/* ---------- Paneles ---------- */
 
 .panel {
     background: var(--papel);
@@ -384,7 +346,6 @@ strong { font-weight: 600; }
 }
 .panel > h2:first-child { margin-bottom: 1.1rem; }
 
-/* Paneles que se abren por una accion (detalle, historial, asientos) */
 #detalle, #historial, #panel-asientos { animation: aparecer .45s var(--suave) both; }
 @keyframes aparecer {
     from { opacity: 0; transform: translateY(12px); }
@@ -397,10 +358,8 @@ strong { font-weight: 600; }
     gap: 2rem;
     align-items: start;
 }
-/* El formulario se queda a la vista mientras recorres la lista */
 .dos-columnas > .panel:last-child { position: sticky; top: 1.5rem; }
 
-/* ---------- Formularios (campos hundidos) ---------- */
 
 .campo { margin-bottom: 1.1rem; }
 
@@ -434,7 +393,6 @@ strong { font-weight: 600; }
 }
 .campo input:disabled, .campo select:disabled { opacity: .5; box-shadow: none; }
 
-/* Flechita propia para los selectores */
 .campo select {
     appearance: none;
     padding-right: 2.5rem;
@@ -444,7 +402,6 @@ strong { font-weight: 600; }
     cursor: pointer;
 }
 
-/* Lupa en los buscadores */
 .campo input[type="search"] {
     padding-left: 2.6rem;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' fill='none' stroke='%236D5646' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='8' cy='8' r='6'/%3E%3Cpath d='m16 16-3.5-3.5'/%3E%3C/svg%3E");
@@ -467,7 +424,6 @@ strong { font-weight: 600; }
 
 .acciones { display: flex; gap: .7rem; flex-wrap: wrap; margin-top: .6rem; }
 
-/* ---------- Botones (levantados; se hunden al presionar) ---------- */
 
 .boton {
     font: inherit;
@@ -489,7 +445,6 @@ strong { font-weight: 600; }
 .boton:active:not(:disabled) { transform: translateY(1px); }
 .boton:disabled { opacity: .45; cursor: not-allowed; box-shadow: none; }
 
-/* Madera del capitan */
 .boton-principal {
     background: var(--madera);
     color: #fff;
@@ -528,7 +483,6 @@ strong { font-weight: 600; }
     border-radius: 10px;
 }
 
-/* ---------- Tablas (filas amplias, como lista de embarque) ---------- */
 
 .tabla-contenedor { overflow-x: auto; }
 
@@ -554,7 +508,6 @@ tbody tr:last-child td { border-bottom: none; }
 td.acciones-tabla { white-space: nowrap; text-align: right; }
 td.acciones-tabla .boton + .boton { margin-left: .4rem; }
 
-/* Fila elegida: fondo crema y orilla de madera */
 tr.seleccionada td { background: var(--madera-palida); }
 tr.seleccionada td:first-child { box-shadow: inset 3px 0 0 var(--madera); }
 tr.seleccionada:hover td { background: var(--madera-palida); }
@@ -564,7 +517,6 @@ tr:hover td.vacio { background: transparent; }
 
 .secundario { display: block; color: var(--tinta-suave); font-size: .85rem; }
 
-/* ---------- Estados (pastillas con puntito) ---------- */
 
 .estado {
     display: inline-flex;
@@ -591,7 +543,6 @@ tr:hover td.vacio { background: transparent; }
 .estado-alerta { background: var(--alerta-suave); color: var(--alerta); }
 .estado-error { background: var(--error-suave); color: var(--error); }
 
-/* ---------- Codigos de vuelo, reservas y precios ---------- */
 
 .codigo {
     font-family: var(--letra-codigo), monospace;
@@ -602,7 +553,6 @@ tr:hover td.vacio { background: transparent; }
     color: var(--marino);
 }
 
-/* ---------- Texto de "cargando" con puntitos ---------- */
 
 .cargando::after {
     content: "";
@@ -618,7 +568,6 @@ tr:hover td.vacio { background: transparent; }
     75%  { content: "..."; }
 }
 
-/* ---------- Mensajes (el capitan te avisa) ---------- */
 
 .mensaje {
     position: fixed;
@@ -661,7 +610,6 @@ tr:hover td.vacio { background: transparent; }
 .mensaje.visible img { animation: tung-tung-tung 1s var(--suave) .1s both; }
 .mensaje.error.visible img { animation: negar .7s .1s both; }
 
-/* Cuando algo sale mal, el capitan niega con la cabeza */
 @keyframes negar {
     0%, 100% { transform: none; }
     20% { transform: rotate(-12deg); }
@@ -670,9 +618,6 @@ tr:hover td.vacio { background: transparent; }
     80% { transform: rotate(4deg); }
 }
 
-/* ============================================================
-   Login: el capitan en la pista + tablero de salidas tipo Solari
-   ============================================================ */
 
 .login {
     display: grid;
@@ -682,7 +627,6 @@ tr:hover td.vacio { background: transparent; }
 
 .foto-capitan {
     position: relative;
-    /* La foto de dia se tine de "hora azul" y atardecer, como la terminal al caer la tarde */
     background:
             linear-gradient(180deg, rgba(13, 23, 51, .70) 0%, rgba(21, 35, 77, .18) 28%, rgba(196, 110, 52, .16) 58%, rgba(13, 23, 51, .92) 100%),
             var(--marino) url("../img/capitan-sahur.jpg") center 16% / cover no-repeat;
@@ -694,7 +638,6 @@ tr:hover td.vacio { background: transparent; }
     min-height: 100vh;
     overflow: hidden;
 }
-/* Linea de atardecer en el horizonte */
 .foto-capitan::after {
     content: "";
     position: absolute;
@@ -749,7 +692,6 @@ tr:hover td.vacio { background: transparent; }
 .salidas tbody tr:hover td { background: transparent; }
 .salidas td[colspan] { color: #D5DCEC; padding: .55rem 0; }
 
-/* Cada letra es una paleta que gira, como los tableros viejos de aeropuerto */
 .paletas { display: inline-flex; gap: 2px; }
 .paleta {
     position: relative;
@@ -757,7 +699,6 @@ tr:hover td.vacio { background: transparent; }
     place-items: center;
     width: 1.12em;
     height: 1.55em;
-    /* Las paletas se achican para que el tablero quepa en la foto */
     font-size: clamp(11px, calc((56.5vw - 210px) / 34), 17px);
     background: linear-gradient(180deg, #1F2C57 0 49%, #172247 51% 100%);
     border-radius: 3px;
@@ -767,7 +708,6 @@ tr:hover td.vacio { background: transparent; }
     color: var(--dorado-claro);
     text-transform: uppercase;
 }
-/* Rayita del medio de cada paleta */
 .paleta::after {
     content: "";
     position: absolute;
@@ -786,7 +726,6 @@ tr:hover td.vacio { background: transparent; }
     100% { transform: rotateX(0); }
 }
 
-/* ---------- Formulario de acceso (relieve neumorfico sobre crema) ---------- */
 
 .acceso {
     display: flex;
@@ -800,11 +739,9 @@ tr:hover td.vacio { background: transparent; }
 .acceso h1 { margin-bottom: 1.4rem; }
 .acceso .boton { width: 100%; min-height: 52px; margin-top: .6rem; font-size: 1.02rem; }
 
-/* Sobre el crema, el campo hundido se ve completo (luz y sombra) */
 .acceso .campo input { background-color: var(--lino); }
 .acceso .campo input:hover { background-color: var(--hundido); }
 
-/* Campo de contrasena con boton para mostrarla */
 .con-boton { position: relative; }
 .con-boton input { padding-right: 5.4rem; }
 .con-boton button {
@@ -825,7 +762,6 @@ tr:hover td.vacio { background: transparent; }
 }
 .con-boton button:active { box-shadow: var(--hundir); }
 
-/* Avion despegando dentro del boton mientras entra */
 .boton .despegue { width: 20px; height: 20px; }
 .boton.entrando:disabled { opacity: 1; cursor: progress; }
 .boton.entrando .despegue { animation: despegar 1s var(--suave) infinite; }
@@ -835,9 +771,6 @@ tr:hover td.vacio { background: transparent; }
     100% { transform: translate(14px, -10px); opacity: 0; }
 }
 
-/* ============================================================
-   Inicio: los vuelos a la venta como tablero de salidas
-   ============================================================ */
 
 .panel-tablero {
     background: var(--marino);
@@ -855,11 +788,9 @@ tr:hover td.vacio { background: transparent; }
 .panel-tablero .estado-alerta { color: #FCD34D; }
 .panel-tablero .estado-error { color: #FCA5A5; }
 
-/* Asientos libres: en dorado cuando quedan pocos */
 .libres { font-family: var(--letra-codigo), monospace; font-weight: 600; }
 .libres.pocos { color: var(--dorado); }
 
-/* ---------- Celular y tablet ---------- */
 
 @media (max-width: 1150px) {
     .dos-columnas { grid-template-columns: 1fr; }
@@ -909,7 +840,6 @@ tr:hover td.vacio { background: transparent; }
     .menu nav .icono { width: 28px; height: 28px; }
     .menu nav .icono svg { width: 16px; height: 16px; }
     .contenido { padding: 1.5rem 1rem 3rem; }
-    /* En pantallas chicas las tablas se deslizan de lado en vez de apretarse */
     .tabla-contenedor table { min-width: 640px; }
     .panel { padding: 1.25rem; }
     .login { grid-template-columns: minmax(0, 1fr); }

@@ -21,7 +21,6 @@
             </div>
         </div>
 
-        <!-- Paso 1: pasajero -->
         <section class="panel paso" id="paso-pasajero">
             <div class="paso-titulo"><span class="paso-numero">1</span><h2>Pasajero</h2></div>
             <div class="paso-contenido" id="contenido-pasajero">
@@ -38,7 +37,6 @@
             </div>
         </section>
 
-        <!-- Paso 2: vuelo -->
         <section class="panel paso bloqueado" id="paso-vuelo">
             <div class="paso-titulo"><span class="paso-numero">2</span><h2>Vuelo</h2></div>
             <div class="paso-contenido">
@@ -67,7 +65,6 @@
             </div>
         </section>
 
-        <!-- Paso 3: asiento -->
         <section class="panel paso bloqueado" id="paso-asiento">
             <div class="paso-titulo"><span class="paso-numero">3</span><h2>Asiento</h2></div>
             <div class="paso-contenido" id="contenido-asiento">
@@ -75,7 +72,6 @@
             </div>
         </section>
 
-        <!-- Paso 4: pases de abordar y cobro -->
         <section class="panel paso bloqueado" id="paso-cobro">
             <div class="paso-titulo"><span class="paso-numero">4</span><h2>Pase de abordar y cobro</h2></div>
             <div class="paso-contenido" id="contenido-cobro">
@@ -83,7 +79,6 @@
             </div>
         </section>
 
-        <!-- Paso 5: imprimir los pases en la impresora termica -->
         <section class="panel paso bloqueado" id="paso-imprimir">
             <div class="paso-titulo"><span class="paso-numero">5</span><h2>Imprimir pases</h2></div>
             <div class="paso-contenido" id="contenido-imprimir">
@@ -103,20 +98,18 @@
     let vuelos = [];
     const ciudades = {};
 
-    // Todo lo que se va eligiendo durante la venta
     const venta = {
         pasajero: null,
         vuelo: null,
-        asientos: [],              // todos los asientos del avion del vuelo elegido
-        disponibles: new Set(),    // ids de los asientos libres en ese vuelo
+        asientos: [],
+        disponibles: new Set(),
         asiento: null,
         reserva: null,
-        boletos: [],               // [{ boleto, vuelo, asiento }]
+        boletos: [],
         pagada: false,
-        impreso: false             // ya se imprimieron los pases en la impresora termica
+        impreso: false
     };
 
-    // ---------- Carga inicial ----------
     async function iniciar() {
         try {
             const [listaPasajeros, listaVuelos, aeropuertos] = await Promise.all([
@@ -135,7 +128,6 @@
         }
     }
 
-    // Marca cada paso como listo, activo o bloqueado
     function actualizarPasos() {
         const estado = (id, listo, activo) => {
             const paso = document.getElementById(id);
@@ -151,12 +143,10 @@
         estado("paso-imprimir", venta.impreso, venta.pagada);
     }
 
-    // ---------- Paso 1: pasajero ----------
     function pintarPasajeros() {
         const contenedor = document.getElementById("contenido-pasajero");
         if (venta.pasajero) {
             const p = venta.pasajero;
-            // Cuando ya hay reserva no se puede cambiar el pasajero
             const boton = venta.reserva ? "" :
                 `<button class="boton boton-secundario boton-chico" onclick="cambiarPasajero()">Cambiar pasajero</button>`;
             contenedor.innerHTML = `
@@ -209,7 +199,6 @@
         pintarPasajeros();
     }
 
-    // ---------- Paso 2: vuelo ----------
     function llenarFiltros() {
         const origenes = [...new Set(vuelos.map(v => v.ruta.aeropuertoOrigen))].sort();
         const destinos = [...new Set(vuelos.map(v => v.ruta.aeropuertoDestino))].sort();
@@ -254,7 +243,6 @@
         document.getElementById("paso-asiento").scrollIntoView({ behavior: "smooth", block: "start" });
     }
 
-    // ---------- Paso 3: asiento ----------
     async function cargarAsientos() {
         const contenedor = document.getElementById("contenido-asiento");
         contenedor.innerHTML = `<p class="ayuda">Cargando asientos...</p>`;
@@ -271,7 +259,6 @@
         }
     }
 
-    // Separa "12A" en fila 12 y letra A para armar el mapa
     function partesAsiento(numero) {
         const m = /^(\d+)([A-Z]+)$/i.exec(numero || "");
         return m ? { fila: Number(m[1]), letra: m[2].toUpperCase() } : { fila: 999, letra: numero };
@@ -286,7 +273,7 @@
 
         const filas = [...new Set(venta.asientos.map(a => partesAsiento(a.numeroAsiento).fila))].sort((a, b) => a - b);
         const letras = [...new Set(venta.asientos.map(a => partesAsiento(a.numeroAsiento).letra))].sort();
-        const mitad = Math.ceil(letras.length / 2);   // el pasillo va a la mitad
+        const mitad = Math.ceil(letras.length / 2);
 
         const mapa = filas.map(fila => {
             const celdas = letras.map((letra, i) => {
@@ -346,7 +333,6 @@
         pintarMapa();
     }
 
-    // Crea la reserva (solo la primera vez) y emite el boleto
     async function agregarBoleto() {
         const boton = document.getElementById("boton-agregar");
         boton.disabled = true;
@@ -377,7 +363,6 @@
         }
     }
 
-    // ---------- Paso 4: pases de abordar y cobro ----------
     function pintarCobro() {
         const contenedor = document.getElementById("contenido-cobro");
         const pases = venta.boletos.map(b => paseDeAbordar({
@@ -435,7 +420,6 @@
         }
     }
 
-    // ---------- Paso 5: imprimir en la impresora termica ----------
     function pintarImpresion() {
         venta.pases = venta.boletos.map(b => datosImpresion({
             boleto: b.boleto, vuelo: b.vuelo, asiento: b.asiento,
@@ -472,7 +456,6 @@
         try {
             const impresos = await imprimirPases(venta.pases);
             venta.impreso = true;
-            // Los tickets "salen" de la impresora
             impresion.classList.remove("imprimiendo");
             void impresion.offsetWidth;
             impresion.classList.add("imprimiendo");
@@ -499,7 +482,6 @@
         }
     }
 
-    // ---------- Eventos ----------
     document.getElementById("buscar-pasajero").addEventListener("input", pintarPasajeros);
     document.getElementById("filtro-origen").addEventListener("change", pintarVuelos);
     document.getElementById("filtro-destino").addEventListener("change", pintarVuelos);

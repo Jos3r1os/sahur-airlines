@@ -17,7 +17,6 @@ public class ReservasClient {
         this.reservasUrl = reservasUrl;
     }
 
-    // Devuelve null si la reserva no existe
     public ReservaDto obtenerReserva(Long idReserva) {
         try {
             return restClient.get().uri(reservasUrl + "/reservas/" + idReserva).retrieve().body(ReservaDto.class);
@@ -26,8 +25,6 @@ public class ReservasClient {
         }
     }
 
-    // Le pide a reservas-service que marque la reserva como PAGADA (y sus boletos como PAGADO).
-    // Devuelve null si salio bien, o el mensaje de error de reservas-service si no se pudo.
     public String marcarPagada(Long idReserva) {
         try {
             restClient.post().uri(reservasUrl + "/reservas/" + idReserva + "/pagar").retrieve().toBodilessEntity();

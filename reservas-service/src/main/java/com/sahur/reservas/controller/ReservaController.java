@@ -49,7 +49,6 @@ public class ReservaController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // Boletos de una reserva: GET /reservas/1/boletos
     @GetMapping("/{id}/boletos")
     public ResponseEntity<?> boletos(@PathVariable Long id) {
         if (!repository.existsById(id)) {
@@ -58,20 +57,16 @@ public class ReservaController {
         return ResponseEntity.ok(boletoRepository.findByReservaIdReserva(id));
     }
 
-    // Reservas de un pasajero: GET /reservas/pasajero/1
     @GetMapping("/pasajero/{idPasajero}")
     public List<Reserva> porPasajero(@PathVariable Long idPasajero) {
         return repository.findByIdPasajero(idPasajero);
     }
 
-    // Ventas de un empleado: GET /reservas/empleado/1
     @GetMapping("/empleado/{idEmpleado}")
     public List<Reserva> porEmpleado(@PathVariable Long idEmpleado) {
         return repository.findByIdEmpleado(idEmpleado);
     }
 
-    // Crear reserva: POST /reservas con {"idPasajero":1, "idEmpleado":1}
-    // Nace PENDIENTE y con total 0; el total sube al emitir boletos
     @PostMapping
     public ResponseEntity<?> crear(@RequestBody Reserva datos) {
         if (datos.getIdPasajero() == null || datos.getIdEmpleado() == null) {
@@ -98,8 +93,6 @@ public class ReservaController {
         return ResponseEntity.ok(repository.save(reserva));
     }
 
-    // Cancelar reserva: POST /reservas/1/cancelar con {"usuario":"admin"}
-    // Cancela todos sus boletos (no se puede si alguno ya fue USADO)
     @PostMapping("/{id}/cancelar")
     @Transactional
     public ResponseEntity<?> cancelar(@PathVariable Long id,
@@ -129,8 +122,6 @@ public class ReservaController {
         return ResponseEntity.ok(repository.save(reserva));
     }
 
-    // Lo llama pagos-service cuando se registra un pago: POST /reservas/1/pagar
-    // Pasa a PAGADO los boletos EMITIDO y la reserva queda PAGADA
     @PostMapping("/{id}/pagar")
     @Transactional
     public ResponseEntity<?> pagar(@PathVariable Long id) {

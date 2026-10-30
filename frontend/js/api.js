@@ -1,22 +1,14 @@
-// ============================================================
-// Sahur Airlines - funciones que usan todas las pantallas
-// ============================================================
-
-// Direccion de cada microservicio
 const URLS = {
     empleados: "http://localhost:8081",
     pasajeros: "http://localhost:8082",
     vuelos: "http://localhost:8083",
     reservas: "http://localhost:8084",
     pagos: "http://localhost:8085",
-    impresora: "http://localhost:8086"   // impresora-service (Python) en la compu de la impresora
+    impresora: "http://localhost:8086"
 };
 
-// Foto de la cara del capitan (la mascota)
 const CARA_CAPITAN = "img/capitan-cara.jpg";
 
-// Llama a un servicio. Ejemplo: await api("pasajeros", "/pasajeros")
-// Si el servicio responde con error, lanza un Error con el mensaje que mando el servicio.
 async function api(servicio, ruta, metodo = "GET", cuerpo = null) {
     const opciones = { method: metodo, headers: {} };
     if (cuerpo !== null) {
@@ -39,7 +31,6 @@ async function api(servicio, ruta, metodo = "GET", cuerpo = null) {
         throw new Error(texto || "Error " + respuesta.status);
     }
 
-    // Algunas respuestas son texto ("Pasajero eliminado") y otras JSON
     try {
         return JSON.parse(texto);
     } catch (e) {
@@ -47,7 +38,6 @@ async function api(servicio, ruta, metodo = "GET", cuerpo = null) {
     }
 }
 
-// ---------- Sesion del empleado ----------
 
 function guardarSesion(datos) {
     localStorage.setItem("sahur_sesion", JSON.stringify(datos));
@@ -63,7 +53,6 @@ function cerrarSesion() {
     window.location.href = "index.html";
 }
 
-// Si no hay sesion, regresa al login. Devuelve la sesion.
 function requerirSesion() {
     const sesion = obtenerSesion();
     if (!sesion) {
@@ -72,9 +61,7 @@ function requerirSesion() {
     return sesion;
 }
 
-// ---------- Menu lateral ----------
 
-// Pictogramas del menu, al estilo de la senalizacion de aeropuerto
 const ICONOS = {
     inicio: `<path d="M3.5 11 12 4l8.5 7"/><path d="M5.5 9.5V20h13V9.5"/><path d="M10 20v-5.5h4V20"/>`,
     boleto: `<path d="M3.5 6.5h17v3.5a2 2 0 0 0 0 4v3.5h-17V14a2 2 0 0 0 0-4z"/><path d="M14.5 6.5v11" stroke-dasharray="2 2.4"/>`,
@@ -92,9 +79,6 @@ function icono(nombre) {
                  stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONOS[nombre]}</svg>`;
 }
 
-// Que puestos pueden abrir cada pantalla.
-// Puestos: Administrador (todo), Supervisor (todo menos Empleados) y Vendedor (la venta del dia).
-// Un puesto que no este en esta lista se trata como Vendedor.
 const TODOS = ["Administrador", "Supervisor", "Vendedor"];
 const JEFES = ["Administrador", "Supervisor"];
 
@@ -110,7 +94,6 @@ const PAGINAS = [
     { archivo: "empleados.html", nombre: "Empleados", icono: "gafete", para: ["Administrador"] }
 ];
 
-// "administrador" -> "Administrador"; un puesto desconocido cuenta como Vendedor
 function puestoDe(sesion) {
     const puesto = (sesion && sesion.puesto ? sesion.puesto : "").trim().toLowerCase();
     return TODOS.find(p => p.toLowerCase() === puesto) || "Vendedor";
@@ -121,18 +104,15 @@ function puedeVer(sesion, archivo) {
     return !pagina || pagina.para.includes(puestoDe(sesion));
 }
 
-// Dibuja el menu en el elemento <aside id="menu">
 function pintarMenu(paginaActual) {
     const sesion = requerirSesion();
     if (!sesion) return;
 
-    // Sesiones de antes de los permisos no traen el puesto: hay que entrar otra vez
     if (!sesion.puesto) {
         cerrarSesion();
         throw new Error("Sesion sin puesto: se pide iniciar sesion otra vez.");
     }
 
-    // Si el puesto no puede ver esta pantalla, regresa al inicio con un aviso
     if (!puedeVer(sesion, paginaActual)) {
         document.documentElement.style.visibility = "hidden";
         window.location.replace("inicio.html?sin-permiso=" + encodeURIComponent(paginaActual));
@@ -159,11 +139,9 @@ function pintarMenu(paginaActual) {
             <button type="button" onclick="cerrarSesion()">Cerrar sesion</button>
         </div>`;
 
-    // Si tocas la cara del capitan, el capitan toca: tung, tung, tung
     const cara = document.getElementById("cara-marca");
     cara.addEventListener("click", () => tocarTambor(cara));
 
-    // Aviso cuando llega aqui porque intento abrir una pantalla sin permiso
     const negada = new URLSearchParams(location.search).get("sin-permiso");
     const pagina = PAGINAS.find(p => p.archivo === negada);
     if (pagina) {
@@ -174,7 +152,6 @@ function pintarMenu(paginaActual) {
     revisarEmpleado(sesion);
 }
 
-// Revisa en segundo plano si el puesto o el estado del empleado cambiaron desde que entro
 async function revisarEmpleado(sesion) {
     try {
         const empleado = await api("empleados", `/empleados/${sesion.idEmpleado}`);
@@ -185,20 +162,16 @@ async function revisarEmpleado(sesion) {
             location.reload();
         }
     } catch (e) {
-        // Sin conexion con empleados-service se queda la sesion como esta
     }
 }
 
-// Reinicia la animacion "tung tung tung" en una imagen del capitan
 function tocarTambor(imagen) {
     imagen.classList.remove("tocando");
-    void imagen.offsetWidth;   // obliga al navegador a reiniciar la animacion
+    void imagen.offsetWidth;
     imagen.classList.add("tocando");
 }
 
-// ---------- El capitan habla ----------
 
-// Devuelve el HTML del capitan con un globo de texto
 function capitanDice(textoHtml) {
     return `<div class="capitan">
                 <img src="${CARA_CAPITAN}" alt="Capitan Sahur">
@@ -206,16 +179,13 @@ function capitanDice(textoHtml) {
             </div>`;
 }
 
-// Fila de tabla vacia, con el capitan explicando que hacer
 function filaVacia(texto, columnas) {
     return `<tr><td colspan="${columnas}" class="vacio">${capitanDice(escapar(texto))}</td></tr>`;
 }
 
-// ---------- Mensajes ----------
 
 let temporizadorMensaje;
 
-// tipo: "ok" o "error"
 function mostrarMensaje(texto, tipo = "ok") {
     let caja = document.getElementById("mensaje");
     if (!caja) {
@@ -224,7 +194,6 @@ function mostrarMensaje(texto, tipo = "ok") {
         caja.setAttribute("role", "status");
         document.body.appendChild(caja);
     }
-    // Se quita y se vuelve a poner "visible" para que el capitan anime cada mensaje nuevo
     caja.className = "mensaje " + tipo;
     caja.innerHTML = `<img src="${CARA_CAPITAN}" alt=""><span>${escapar(texto)}</span>`;
     void caja.offsetWidth;
@@ -233,11 +202,9 @@ function mostrarMensaje(texto, tipo = "ok") {
     temporizadorMensaje = setTimeout(() => caja.classList.remove("visible"), 5000);
 }
 
-// ---------- Formatos ----------
 
 function dinero(valor) {
     const numero = Number(valor || 0);
-    // \u00a0 = espacio que no se parte, para que la Q no quede sola en otra linea
     return "Q\u00a0" + numero.toLocaleString("es-GT", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
@@ -258,12 +225,10 @@ function soloFecha(iso) {
     return new Date(iso).toLocaleDateString("es-GT", { day: "2-digit", month: "short" });
 }
 
-// Codigo de vuelo para mostrar: 1 -> "SAH 001"
 function codigoVuelo(idVuelo) {
     return "SAH " + String(idVuelo).padStart(3, "0");
 }
 
-// Etiqueta de color segun el estado
 function etiquetaEstado(estado) {
     const ok = ["ACTIVO", "PAGADA", "PAGADO", "COMPLETADO", "PROGRAMADO", "USADO", "FINALIZADO"];
     const alerta = ["PENDIENTE", "EMITIDO", "RETRASADO", "MANTENIMIENTO", "EN_VUELO", "REEMBOLSADO"];
@@ -272,12 +237,10 @@ function etiquetaEstado(estado) {
     if (ok.includes(estado)) clase = "estado-ok";
     else if (alerta.includes(estado)) clase = "estado-alerta";
     else if (error.includes(estado)) clase = "estado-error";
-    // Se muestra "Programado" en vez de "PROGRAMADO" y "En vuelo" en vez de "EN_VUELO"
     const texto = estado ? estado.charAt(0) + estado.slice(1).toLowerCase().replaceAll("_", " ") : "Sin estado";
     return `<span class="estado ${clase}">${escapar(texto)}</span>`;
 }
 
-// Evita que un texto con < > rompa el HTML
 function escapar(texto) {
     if (texto === null || texto === undefined) return "";
     return String(texto)

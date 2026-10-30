@@ -29,15 +29,12 @@ public class Vuelo {
     @Column(name = "fecha_salida", nullable = false)
     private LocalDateTime fechaSalida;
 
-    // Campos nuevos: quedan opcionales en Oracle porque la tabla ya tiene datos.
-    // Que sean obligatorios lo valida el controller.
     @Column(name = "fecha_llegada")
     private LocalDateTime fechaLlegada;
 
     @Column(name = "precio_base", precision = 10, scale = 2)
     private BigDecimal precioBase;
 
-    // PROGRAMADO, RETRASADO, EN_VUELO, FINALIZADO o CANCELADO
     @Column(name = "estado", length = 20)
     private String estado;
 }

@@ -49,7 +49,6 @@ public class EmpleadoController {
         if (vacio(empleado.getPassword())) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("El password es obligatorio");
         }
-        // Si no mandan estado, el empleado nuevo queda ACTIVO
         if (vacio(empleado.getEstado())) {
             empleado.setEstado("ACTIVO");
         }
@@ -62,13 +61,10 @@ public class EmpleadoController {
         }
         empleado.setIdEmpleado(null);
         empleado.setEstado(empleado.getEstado().toUpperCase());
-        // Guardamos la contrasena encriptada, nunca en texto plano
         empleado.setPassword(encoder.encode(empleado.getPassword()));
         return ResponseEntity.ok(repository.save(empleado));
     }
 
-    // Modificar: PUT /empleados/1
-    // El password es opcional: si no lo mandan, se queda el que tenia
     @PutMapping("/{id}")
     public ResponseEntity<?> modificar(@PathVariable Long id, @RequestBody Empleado datos) {
         Optional<Empleado> encontrado = repository.findById(id);
@@ -94,8 +90,6 @@ public class EmpleadoController {
         return ResponseEntity.ok(repository.save(empleado));
     }
 
-    // Eliminar: DELETE /empleados/1
-    // Si ya hizo ventas no se elimina (se pierde quien vendio); en ese caso se pone INACTIVO con PUT
     @DeleteMapping("/{id}")
     public ResponseEntity<?> eliminar(@PathVariable Long id) {
         if (!repository.existsById(id)) {
@@ -131,7 +125,6 @@ public class EmpleadoController {
         ));
     }
 
-    // Reglas para crear y modificar. Devuelve el mensaje de error, o null si todo esta bien.
     private String validar(Empleado e) {
         if (vacio(e.getUsuario())) {
             return "El usuario es obligatorio";

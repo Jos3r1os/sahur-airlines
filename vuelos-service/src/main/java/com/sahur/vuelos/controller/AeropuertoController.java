@@ -48,7 +48,6 @@ public class AeropuertoController {
         return ResponseEntity.ok(repository.save(aeropuerto));
     }
 
-    // Modificar: PUT /aeropuertos/1
     @PutMapping("/{id}")
     public ResponseEntity<?> modificar(@PathVariable Long id, @RequestBody Aeropuerto datos) {
         Optional<Aeropuerto> encontrado = repository.findById(id);
@@ -65,7 +64,6 @@ public class AeropuertoController {
         if (repository.existsByCodigoIataAndIdAeropuertoNot(codigoNuevo, id)) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body("Ya existe otro aeropuerto con ese codigo IATA");
         }
-        // Las rutas guardan el codigo IATA: si se cambia, esas rutas quedarian apuntando a un codigo que no existe
         if (!codigoNuevo.equals(aeropuerto.getCodigoIata())
                 && rutaRepository.existsByAeropuertoOrigenOrAeropuertoDestino(aeropuerto.getCodigoIata(), aeropuerto.getCodigoIata())) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
@@ -79,7 +77,6 @@ public class AeropuertoController {
         return ResponseEntity.ok(repository.save(aeropuerto));
     }
 
-    // Eliminar: DELETE /aeropuertos/1
     @DeleteMapping("/{id}")
     public ResponseEntity<?> eliminar(@PathVariable Long id) {
         Optional<Aeropuerto> encontrado = repository.findById(id);
@@ -95,7 +92,6 @@ public class AeropuertoController {
         return ResponseEntity.ok("Aeropuerto eliminado");
     }
 
-    // Reglas para crear y modificar. Devuelve el mensaje de error, o null si todo esta bien.
     private String validar(Aeropuerto a) {
         if (vacio(a.getNombre())) {
             return "El nombre es obligatorio";

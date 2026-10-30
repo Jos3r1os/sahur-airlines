@@ -9,6 +9,5 @@ public class BoletoRequest {
     private Long idReserva;
     private Long idVuelo;
     private Long idAsiento;
-    // Usuario del empleado que emite el boleto (queda en el historial)
     private String usuario;
 }

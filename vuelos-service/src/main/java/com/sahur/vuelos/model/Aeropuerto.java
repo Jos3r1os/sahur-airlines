@@ -20,9 +20,7 @@ public class Aeropuerto {
 
     @Column(name = "codigo_iata", nullable = false, unique = true, length = 3)
     private String codigoIata;
-
-    // Campos nuevos: quedan opcionales en Oracle porque la tabla ya tiene datos.
-    // Que sean obligatorios lo valida el controller.
+    
     @Column(name = "ciudad", length = 100)
     private String ciudad;
 

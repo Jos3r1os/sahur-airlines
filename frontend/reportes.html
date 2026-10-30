@@ -26,12 +26,10 @@
             </div>
         </div>
 
-        <!-- Solo aparece en la hoja impresa -->
         <p class="solo-imprimir" id="titulo-impresion"></p>
 
         <div class="informe" id="informe"></div>
 
-        <!-- Filtro de fechas: aplica a boletos, pagos, empleados y pasajeros -->
         <form class="filtros panel" id="form-filtros">
             <div class="campo">
                 <label for="desde">Desde</label>
@@ -59,7 +57,6 @@
             <button role="tab" aria-selected="false" data-pestana="pasajeros">Por pasajero</button>
         </div>
 
-        <!-- Boletos -->
         <section class="panel" data-contenido="boletos">
             <div class="herramientas">
                 <div class="fila">
@@ -83,7 +80,6 @@
             <div class="tabla-contenedor" id="tabla-boletos"></div>
         </section>
 
-        <!-- Pagos -->
         <section class="panel" data-contenido="pagos" hidden>
             <div class="herramientas">
                 <div class="fila">
@@ -109,18 +105,15 @@
             <div class="tabla-contenedor" id="tabla-pagos"></div>
         </section>
 
-        <!-- Vuelos -->
         <section class="panel" data-contenido="vuelos" hidden>
             <p class="ayuda">La ocupacion y los asientos disponibles son los de hoy; este reporte no depende de las fechas del filtro.</p>
             <div class="tabla-contenedor" id="tabla-vuelos"></div>
         </section>
 
-        <!-- Empleados -->
         <section class="panel" data-contenido="empleados" hidden>
             <div class="tabla-contenedor" id="tabla-empleados"></div>
         </section>
 
-        <!-- Pasajeros -->
         <section class="panel" data-contenido="pasajeros" hidden>
             <div class="tabla-contenedor" id="tabla-pasajeros"></div>
         </section>
@@ -131,11 +124,9 @@
 <script>
     pintarMenu("reportes.html");
 
-    // Datos de todos los servicios (se cargan una vez)
     let boletos = [], pagos = [], reservas = [], vuelos = [], asientos = [];
     let pasajeros = [], empleados = [], aeropuertos = [];
 
-    // Pestana visible y lo ultimo que se dibujo en cada reporte (para el CSV)
     let pestanaActual = "boletos";
     const TABLAS = {};
 
@@ -144,7 +135,6 @@
         empleados: "Ventas por empleado", pasajeros: "Por pasajero"
     };
 
-    // ---------- Ayudantes para buscar por id ----------
     const pasajero = id => pasajeros.find(p => p.idPasajero === id);
     const empleado = id => empleados.find(e => e.idEmpleado === id);
     const vuelo = id => vuelos.find(v => v.idVuelo === id);
@@ -155,14 +145,10 @@
     const nombreEmpleado = id => { const e = empleado(id); return e ? e.usuario : `Empleado ${id}`; };
     const rutaVuelo = v => v ? `${v.ruta.aeropuertoOrigen} - ${v.ruta.aeropuertoDestino}` : "";
     const sumar = (lista, f) => lista.reduce((t, x) => t + Number(f(x) || 0), 0);
-    // cantidad(1, "boleto") -> "1 boleto"; cantidad(3, "boleto") -> "3 boletos"
     const cantidad = (n, palabra, plural = palabra + "s") => `${n} ${n === 1 ? palabra : plural}`;
 
-    // Un boleto cuenta como vendido cuando ya se pago (PAGADO) o ya se uso (USADO)
     const esVendido = b => b.estado === "PAGADO" || b.estado === "USADO";
 
-    // ---------- Filtro de fechas ----------
-    // Compara solo la parte de fecha "2026-10-08" del texto ISO
     function dentroDeFechas(iso) {
         const desde = document.getElementById("desde").value;
         const hasta = document.getElementById("hasta").value;
@@ -195,16 +181,10 @@
         return "en todo el historial";
     }
 
-    // Boletos y pagos dentro de las fechas elegidas
-    // (un boleto toma la fecha de su reserva; un pago, su fecha de pago)
     const boletosDelPeriodo = () => boletos.filter(b => dentroDeFechas(b.reserva && b.reserva.fechaReserva));
     const pagosDelPeriodo = () => pagos.filter(p => dentroDeFechas(p.fechaPago));
     const reservasDelPeriodo = () => reservas.filter(r => dentroDeFechas(r.fechaReserva));
 
-    // ---------- Tabla generica ----------
-    // columnas: [{ titulo, html: fila => html, texto: fila => valor para el CSV, num: true }]
-    //   soloCsv: true -> la columna no se ve en pantalla, solo sale en el CSV
-    // pie: [valores html por cada columna visible] o null
     function pintarTabla(clave, todas, filas, pie, vacio) {
         TABLAS[clave] = { columnas: todas, filas };
         const columnas = todas.filter(c => !c.soloCsv);
@@ -222,18 +202,14 @@
             </table>`;
     }
 
-    // ---------- Resumen de arriba ----------
     function pintarResumen() {
         const bol = boletosDelPeriodo();
         const pag = pagosDelPeriodo();
         const vendidos = bol.filter(esVendido);
-        // Al reembolsar, el mismo pago pasa de COMPLETADO a REEMBOLSADO:
-        // lo que queda COMPLETADO es lo que realmente entro
         const ingresos = sumar(pag.filter(p => p.estado === "COMPLETADO"), p => p.monto);
         const reembolsado = sumar(pag.filter(p => p.estado === "REEMBOLSADO"), p => p.monto);
         const pendientes = bol.filter(b => b.estado === "EMITIDO");
 
-        // Ocupacion de los vuelos que todavia no han salido
         const proximos = vuelos.filter(v => ["PROGRAMADO", "RETRASADO"].includes(v.estado));
         const capacidad = sumar(proximos, v => asientosDelAvion(v).length);
         const ocupados = sumar(proximos, v => ocupadosDelVuelo(v).length);
@@ -259,7 +235,6 @@
             `Sahur Airlines - ${NOMBRES_PESTANA[pestanaActual]} - ${textoPeriodo()} - impreso el ${fechaHora(new Date().toISOString())}`;
     }
 
-    // ---------- Reporte: boletos ----------
     function pintarBoletos() {
         const estado = document.getElementById("f-boleto-estado").value;
         const idVuelo = Number(document.getElementById("f-boleto-vuelo").value);
@@ -288,7 +263,6 @@
         "No hay boletos con esos filtros.");
     }
 
-    // ---------- Reporte: pagos ----------
     function pintarPagos() {
         const metodo = document.getElementById("f-pago-metodo").value;
         const estado = document.getElementById("f-pago-estado").value;
@@ -317,7 +291,6 @@
         "No hay pagos con esos filtros.");
     }
 
-    // ---------- Reporte: ocupacion por vuelo ----------
     const asientosDelAvion = v => asientos.filter(a => a.avion && a.avion.idAvion === v.avion.idAvion);
     const ocupadosDelVuelo = v => boletos.filter(b => b.idVuelo === v.idVuelo && b.estado !== "CANCELADO");
 
@@ -353,7 +326,6 @@
         "Todavia no hay vuelos.");
     }
 
-    // ---------- Reporte: ventas por empleado ----------
     function pintarEmpleados() {
         const res = reservasDelPeriodo();
         const bol = boletosDelPeriodo();
@@ -385,7 +357,6 @@
         "Todavia no hay empleados.");
     }
 
-    // ---------- Reporte: por pasajero ----------
     function pintarPasajeros() {
         const bol = boletosDelPeriodo();
         const filas = pasajeros.map(p => {
@@ -427,7 +398,6 @@
         pintarPasajeros();
     }
 
-    // ---------- Descargar CSV (se abre en Excel) ----------
     function descargarCsv() {
         const tabla = TABLAS[pestanaActual];
         if (!tabla || tabla.filas.length === 0) {
@@ -439,7 +409,6 @@
             tabla.columnas.map(c => celda(c.titulo)).join(","),
             ...tabla.filas.map(f => tabla.columnas.map(c => celda(c.texto(f))).join(","))
         ];
-        // \ufeff hace que Excel respete las tildes
         const archivo = new Blob(["\ufeff" + lineas.join("\r\n")], { type: "text/csv;charset=utf-8" });
         const enlace = document.createElement("a");
         enlace.href = URL.createObjectURL(archivo);
@@ -448,7 +417,6 @@
         URL.revokeObjectURL(enlace.href);
     }
 
-    // ---------- Pestanas y filtros ----------
     document.querySelectorAll("[data-pestana]").forEach(boton => {
         boton.addEventListener("click", () => {
             pestanaActual = boton.dataset.pestana;
@@ -461,7 +429,6 @@
     ["f-boleto-estado", "f-boleto-vuelo"].forEach(id => document.getElementById(id).addEventListener("change", pintarBoletos));
     ["f-pago-metodo", "f-pago-estado"].forEach(id => document.getElementById(id).addEventListener("change", pintarPagos));
 
-    // ---------- Cargar todo ----------
     async function iniciar() {
         try {
             [boletos, pagos, reservas, vuelos, asientos, pasajeros, empleados, aeropuertos] = await Promise.all([

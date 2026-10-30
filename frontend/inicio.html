@@ -24,10 +24,8 @@
             </div>
         </div>
 
-        <!-- Resumen del dia que da el capitan -->
         <div class="informe" id="informe"></div>
 
-        <!-- Los vuelos a la venta se ven como el tablero de salidas de la terminal -->
         <section class="panel panel-tablero">
             <h2>Vuelos a la venta</h2>
             <div class="tabla-contenedor">
@@ -67,7 +65,6 @@
     document.getElementById("saludo").textContent = `${saludo}, ${sesion ? sesion.usuario : ""}`;
     document.getElementById("informe").innerHTML = capitanDice('<span class="cargando">Dame un segundo, estoy revisando los vuelos de hoy</span>');
 
-    // El capitan resume cuantos vuelos hay a la venta y cuantas reservas faltan por cobrar
     function pintarInforme(cantidadVuelos, pendientes) {
         const vuelos = cantidadVuelos === 1 ? "1 vuelo a la venta" : `${cantidadVuelos} vuelos a la venta`;
         let cobro;
@@ -91,7 +88,6 @@
                 cuerpo.innerHTML = filaVacia("Todavia no hay vuelos a la venta. Crea uno en la pantalla Vuelos y aparecera aqui.", 7);
                 return 0;
             }
-            // Cuantos asientos quedan en cada vuelo (lo calcula reservas-service)
             const libres = await Promise.all(vuelos.map(v =>
                 api("reservas", `/boletos/vuelo/${v.idVuelo}/asientos-disponibles`).then(l => l.length).catch(() => "-")
             ));

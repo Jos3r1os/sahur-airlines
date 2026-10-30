@@ -18,7 +18,6 @@ public class Pago {
     @Column(name = "id_pago")
     private Long idPago;
 
-    // Viene de reservas-service, por eso es solo un numero (sin relacion JPA)
     @Column(name = "id_reserva", nullable = false)
     private Long idReserva;
 
@@ -28,11 +27,9 @@ public class Pago {
     @Column(name = "fecha_pago", nullable = false)
     private LocalDateTime fechaPago;
 
-    // EFECTIVO, TARJETA o TRANSFERENCIA
     @Column(name = "metodo_pago", nullable = false, length = 20)
     private String metodoPago;
 
-    // COMPLETADO o REEMBOLSADO
     @Column(name = "estado", nullable = false, length = 20)
     private String estado;
 }

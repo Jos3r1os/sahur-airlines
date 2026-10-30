@@ -11,7 +11,6 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-// Logica que usan los dos controllers (reservas y boletos)
 @Service
 public class ReservaService {
 
@@ -45,7 +44,7 @@ public class ReservaService {
         historialRepository.save(historial);
     }
 
-    // Total de la reserva = suma de los precios de sus boletos que no estan CANCELADOS
+
     public Reserva recalcularTotal(Reserva reserva) {
         BigDecimal total = boletoRepository.findByReservaIdReserva(reserva.getIdReserva()).stream()
                 .filter(b -> !"CANCELADO".equals(b.getEstado()))
@@ -55,7 +54,7 @@ public class ReservaService {
         return reservaRepository.save(reserva);
     }
 
-    // Si no mandan usuario, queda como SISTEMA
+
     public String usuarioONulo(String usuario) {
         return (usuario == null || usuario.isBlank()) ? "SISTEMA" : usuario.trim();
     }

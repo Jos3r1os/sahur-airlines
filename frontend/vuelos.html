@@ -39,12 +39,10 @@
         "Si ya tiene boletos vendidos no se puede eliminar: cambialo a Cancelado."
     );
 
-    // "2026-11-15T08:30:00" -> "2026-11-15T08:30" (formato del campo datetime-local)
     function aCampoFecha(iso) {
         return iso ? iso.slice(0, 16) : "";
     }
 
-    // Suma minutos a una fecha del formulario y la devuelve en el mismo formato
     function sumarMinutos(valorCampo, minutos) {
         const f = new Date(valorCampo);
         f.setMinutes(f.getMinutes() + minutos);
@@ -102,7 +100,6 @@
                     estado: v.estado
                 };
             },
-            // Al elegir ruta o salida, la llegada se calcula con la duracion de la ruta
             alIniciar: form => {
                 const calcularLlegada = () => {
                     const salida = document.getElementById("vuelos-fechaSalida").value;

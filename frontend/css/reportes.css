@@ -1,8 +1,3 @@
-/* ============================================================
-   Consultas y reportes (se usa en reportes.html)
-   ============================================================ */
-
-/* Filtros de fecha arriba de los reportes */
 .filtros {
     display: flex;
     gap: 0 1rem;
@@ -12,7 +7,6 @@
 .filtros .campo { min-width: 170px; }
 .filtros .acciones { margin: 0 0 1.1rem; }
 
-/* Numeros del resumen: piezas en relieve sobre el crema de la terminal */
 .resumen {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -40,11 +34,9 @@
 .dato:first-child strong { color: var(--madera-honda); }
 .dato small { color: var(--tinta-suave); font-size: .84rem; }
 
-/* Columnas de numeros alineadas a la derecha */
 th.num, td.num { text-align: right; white-space: nowrap; }
 td.num { font-variant-numeric: tabular-nums; }
 
-/* Fila de totales al final de cada tabla */
 tfoot td {
     font-weight: 600;
     border-top: 1.5px solid var(--linea-fuerte);
@@ -54,7 +46,6 @@ tfoot td {
 }
 tfoot tr:hover td { background: var(--crema); }
 
-/* Barra de ocupacion de un vuelo: riel hundido que se llena de madera */
 .ocupacion { display: flex; align-items: center; gap: .7rem; min-width: 160px; }
 .ocupacion .barra {
     flex: 1;
@@ -79,7 +70,6 @@ tfoot tr:hover td { background: var(--crema); }
     to   { transform: none; }
 }
 
-/* Selectores dentro de la barra de herramientas de cada reporte */
 .herramientas {
     display: flex;
     gap: 0 1rem;
@@ -98,7 +88,6 @@ tfoot tr:hover td { background: var(--crema); }
     .resumen { grid-template-columns: 1fr; }
 }
 
-/* ---------- Al imprimir: solo el reporte, sin menu ni botones ---------- */
 @media print {
     body { background: #fff; }
     .app { display: block; }

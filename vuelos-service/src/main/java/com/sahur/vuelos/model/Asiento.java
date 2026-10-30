@@ -26,8 +26,6 @@ public class Asiento {
     @Column(name = "numero_asiento", nullable = false)
     private String numeroAsiento;
 
-    // Campo nuevo: queda opcional en Oracle porque la tabla ya tiene datos.
-    // VENTANA, PASILLO o CENTRO
     @Column(name = "ubicacion", length = 20)
     private String ubicacion;
 }

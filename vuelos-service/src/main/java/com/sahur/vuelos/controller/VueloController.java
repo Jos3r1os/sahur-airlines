@@ -25,7 +25,6 @@ public class VueloController {
 
     private static final Set<String> ESTADOS_VALIDOS =
             Set.of("PROGRAMADO", "RETRASADO", "EN_VUELO", "FINALIZADO", "CANCELADO");
-    // Solo en estos estados se pueden vender boletos
     private static final Set<String> ESTADOS_VENTA = Set.of("PROGRAMADO", "RETRASADO");
 
     private final VueloRepository repository;
@@ -48,8 +47,6 @@ public class VueloController {
         return repository.findAll();
     }
 
-    // Vuelos disponibles para vender: GET /vuelos/disponibles?origen=GUA&destino=MIA&fecha=2026-11-15
-    // (origen, destino y fecha son opcionales)
     @GetMapping("/disponibles")
     public List<Vuelo> disponibles(@RequestParam(required = false) String origen,
                                    @RequestParam(required = false) String destino,
@@ -73,7 +70,6 @@ public class VueloController {
 
     @PostMapping
     public ResponseEntity<?> crear(@RequestBody Vuelo vuelo) {
-        // Si no mandan estado, el vuelo nuevo queda PROGRAMADO
         if (vacio(vuelo.getEstado())) {
             vuelo.setEstado("PROGRAMADO");
         }
@@ -93,7 +89,6 @@ public class VueloController {
         return ResponseEntity.ok(repository.save(vuelo));
     }
 
-    // Modificar: PUT /vuelos/1
     @PutMapping("/{id}")
     public ResponseEntity<?> modificar(@PathVariable Long id, @RequestBody Vuelo datos) {
         Optional<Vuelo> encontrado = repository.findById(id);
@@ -106,7 +101,6 @@ public class VueloController {
         }
         Vuelo vuelo = encontrado.get();
 
-        // Si ya se vendieron boletos, no se puede cambiar ni el avion (los asientos son de ese avion) ni la ruta
         boolean cambiaAvion = !datos.getAvion().getIdAvion().equals(vuelo.getAvion().getIdAvion());
         boolean cambiaRuta = !datos.getRuta().getIdRuta().equals(vuelo.getRuta().getIdRuta());
         if ((cambiaAvion || cambiaRuta) && reservas.vueloTieneBoletos(id)) {
@@ -128,8 +122,6 @@ public class VueloController {
         return ResponseEntity.ok(repository.save(vuelo));
     }
 
-    // Eliminar: DELETE /vuelos/1
-    // Si ya tiene boletos no se elimina; en ese caso se pone CANCELADO con PUT
     @DeleteMapping("/{id}")
     public ResponseEntity<?> eliminar(@PathVariable Long id) {
         if (!repository.existsById(id)) {
@@ -143,9 +135,6 @@ public class VueloController {
         return ResponseEntity.ok("Vuelo eliminado");
     }
 
-    // Reglas para crear y modificar. Devuelve el mensaje de error, o null si todo esta bien.
-    // Tambien cambia la ruta y el avion que vienen en el JSON (solo con id) por los completos de la base,
-    // para que la respuesta traiga todos sus datos.
     private String validar(Vuelo v) {
         if (v.getRuta() == null || v.getRuta().getIdRuta() == null) {
             return "La ruta es obligatoria";

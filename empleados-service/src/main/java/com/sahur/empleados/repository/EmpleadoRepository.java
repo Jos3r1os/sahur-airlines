@@ -9,6 +9,5 @@ public interface EmpleadoRepository extends JpaRepository<Empleado, Long> {
     boolean existsByUsuario(String usuario);
     Optional<Empleado> findByUsuario(String usuario);
 
-    // Para modificar: revisa si OTRO empleado (distinto id) ya usa ese usuario
     boolean existsByUsuarioAndIdEmpleadoNot(String usuario, Long idEmpleado);
 }

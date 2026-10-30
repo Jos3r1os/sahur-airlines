@@ -35,7 +35,6 @@ public class PasajeroController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // Buscar por documento: GET /pasajeros/documento/2589741230101
     @GetMapping("/documento/{numero}")
     public ResponseEntity<Pasajero> buscarPorDocumento(@PathVariable String numero) {
         return repository.findByNumeroDocumento(numero)
@@ -52,12 +51,10 @@ public class PasajeroController {
         if (repository.existsByNumeroDocumento(pasajero.getNumeroDocumento())) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body("Ya existe un pasajero con ese documento");
         }
-        // idPasajero en null para que siempre sea un pasajero nuevo
         pasajero.setIdPasajero(null);
         return ResponseEntity.ok(repository.save(pasajero));
     }
 
-    // Modificar: PUT /pasajeros/1 con todos los datos del pasajero
     @PutMapping("/{id}")
     public ResponseEntity<?> modificar(@PathVariable Long id, @RequestBody Pasajero datos) {
         Optional<Pasajero> encontrado = repository.findById(id);
@@ -81,8 +78,6 @@ public class PasajeroController {
         return ResponseEntity.ok(repository.save(pasajero));
     }
 
-    // Eliminar: DELETE /pasajeros/1
-    // No se deja eliminar si el pasajero tiene reservas (quedarian reservas de un pasajero que no existe)
     @DeleteMapping("/{id}")
     public ResponseEntity<?> eliminar(@PathVariable Long id) {
         if (!repository.existsById(id)) {
@@ -96,7 +91,6 @@ public class PasajeroController {
         return ResponseEntity.ok("Pasajero eliminado");
     }
 
-    // Reglas para crear y modificar. Devuelve el mensaje de error, o null si todo esta bien.
     private String validar(Pasajero p) {
         if (vacio(p.getNumeroDocumento())) {
             return "El numero de documento es obligatorio";

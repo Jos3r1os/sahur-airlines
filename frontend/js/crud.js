@@ -1,37 +1,10 @@
-// ============================================================
-// Ayudante para pantallas de registrar / consultar / modificar / eliminar
-// Cada pantalla describe su "seccion" (columnas y campos) y este archivo
-// arma la tabla, el formulario y los botones.
-// ============================================================
-
-// Todas las secciones de la pagina, por clave. Ej: SECCIONES["aeropuertos"]
 const SECCIONES = {};
 
-// cfg = {
-//   clave:      "aeropuertos"              identificador unico
-//   contenedor: "sec-aeropuertos"          id del elemento donde se dibuja
-//   servicio:   "vuelos"                   servicio de api.js
-//   ruta:       "/aeropuertos"             ruta del servicio
-//   id:         "idAeropuerto"             nombre del campo id
-//   nombre:     "aeropuerto"               en singular, para los mensajes
-//   femenino:   true                       si el nombre es femenino ("ruta", "clase")
-//   vacio:      "Todavia no hay..."        texto cuando no hay registros
-//   columnas:   [{ titulo, valor: x => html }]
-//   campos:     [{ id, etiqueta, tipo, requerido, ayuda, paso, opciones: () => [{valor, texto}],
-//                  leer: x => valorParaElFormulario, soloAlCrear }]
-//   aDatos:     (valores, editando) => cuerpo JSON que se manda al servicio
-//   acciones:   x => html de botones extra en cada fila           (opcional)
-//   alCargar:   lista => {}  se llama cada vez que se recarga     (opcional)
-//   alIniciar:  form => {}   para agregar eventos al formulario   (opcional)
-//   buscar:     x => texto donde se busca                         (opcional)
-//   antesDeEliminar: x => mensaje de error, o null si se puede     (opcional)
-// }
 function crearSeccion(cfg) {
     cfg.lista = [];
     cfg.editando = null;
-    // Palabras que cambian segun el genero: "Nuevo aeropuerto" / "Nueva ruta"
     cfg.nuevo = cfg.femenino ? "Nueva" : "Nuevo";
-    cfg.hecho = cfg.femenino ? "a" : "o";          // registrado / registrada
+    cfg.hecho = cfg.femenino ? "a" : "o";
     cfg.este = cfg.femenino ? "esta" : "este";
     SECCIONES[cfg.clave] = cfg;
 
@@ -91,7 +64,6 @@ function htmlCampo(cfg, c) {
     return `<div class="campo"><label for="${idHtml}">${c.etiqueta}</label>${control}${ayuda}</div>`;
 }
 
-// Vuelve a llenar las opciones de los <select> (por ejemplo, cuando cambian los aeropuertos)
 function refrescarOpciones(clave) {
     const cfg = SECCIONES[clave];
     if (!cfg) return;
@@ -145,7 +117,6 @@ function editarRegistro(clave, id) {
         const control = document.getElementById(`${clave}-${c.id}`);
         const valor = c.leer ? c.leer(x) : x[c.id];
         control.value = valor === null || valor === undefined ? "" : valor;
-        // Campos como la contrasena solo son obligatorios al crear
         if (c.soloAlCrear) control.required = false;
     });
     document.getElementById(`${clave}-titulo`).textContent = `Editar ${cfg.nombre}`;
@@ -169,7 +140,6 @@ function limpiarFormulario(clave) {
     pintarTabla(clave);
 }
 
-// Lee los valores del formulario: { campo: valor }
 function leerFormulario(clave) {
     const cfg = SECCIONES[clave];
     const valores = {};
@@ -223,7 +193,6 @@ function mayuscula(texto) {
     return texto.charAt(0).toUpperCase() + texto.slice(1);
 }
 
-// "ACTIVO" -> "Activo", "EN_VUELO" -> "En vuelo"
 function textoEstado(estado) {
     return estado ? estado.charAt(0) + estado.slice(1).toLowerCase().replaceAll("_", " ") : "";
 }

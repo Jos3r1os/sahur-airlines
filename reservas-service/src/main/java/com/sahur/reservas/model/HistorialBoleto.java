@@ -21,7 +21,6 @@ public class HistorialBoleto {
     @JoinColumn(name = "id_boleto")
     private Boleto boleto;
 
-    // Vacio en el primer registro (cuando se emite el boleto)
     @Column(name = "estado_anterior", length = 20)
     private String estadoAnterior;
 
@@ -31,7 +30,6 @@ public class HistorialBoleto {
     @Column(name = "fecha_cambio", nullable = false)
     private LocalDateTime fechaCambio;
 
-    // Quien hizo el cambio (usuario del empleado, PAGOS o SISTEMA)
     @Column(name = "usuario_responsable", nullable = false, length = 50)
     private String usuarioResponsable;
 }

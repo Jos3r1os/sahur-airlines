@@ -16,8 +16,6 @@ public class ReservasClient {
     public ReservasClient(@Value("${servicios.reservas.url}") String reservasUrl) {
         this.reservasUrl = reservasUrl;
     }
-
-    // Pregunta a reservas-service si el pasajero tiene reservas (GET /reservas/pasajero/{id})
     public boolean tieneReservas(Long idPasajero) {
         List<?> reservas = restClient.get()
                 .uri(reservasUrl + "/reservas/pasajero/" + idPasajero)

@@ -40,13 +40,11 @@ public class PagoController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // Pagos de una reserva: GET /pagos/reserva/1
     @GetMapping("/reserva/{idReserva}")
     public List<Pago> porReserva(@PathVariable Long idReserva) {
         return repository.findByIdReserva(idReserva);
     }
 
-    // Registrar pago: POST /pagos con {"idReserva":1, "monto":1200, "metodoPago":"TARJETA"}
     @PostMapping
     public ResponseEntity<?> crear(@RequestBody Pago datos) {
         if (datos.getIdReserva() == null) {
@@ -60,7 +58,6 @@ public class PagoController {
                     .body("Metodo de pago invalido. Usa: EFECTIVO, TARJETA o TRANSFERENCIA");
         }
 
-        // 1. La reserva debe existir y estar PENDIENTE (se pregunta a reservas-service)
         ReservaDto reserva = reservas.obtenerReserva(datos.getIdReserva());
         if (reserva == null) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("La reserva no existe");
@@ -73,19 +70,16 @@ public class PagoController {
             return ResponseEntity.status(HttpStatus.CONFLICT).body("La reserva no tiene boletos por pagar");
         }
 
-        // 2. El monto debe ser exactamente el total de la reserva
         if (datos.getMonto().compareTo(reserva.getTotal()) != 0) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body("El monto debe ser igual al total de la reserva: Q" + reserva.getTotal());
         }
 
-        // 3. Marcar la reserva como PAGADA en reservas-service. Si falla, no se registra el pago.
         String error = reservas.marcarPagada(datos.getIdReserva());
         if (error != null) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
         }
 
-        // 4. Guardar el pago
         Pago pago = new Pago();
         pago.setIdReserva(datos.getIdReserva());
         pago.setMonto(datos.getMonto());
@@ -95,8 +89,6 @@ public class PagoController {
         return ResponseEntity.ok(repository.save(pago));
     }
 
-    // Reembolsar: POST /pagos/1/reembolsar
-    // Solo si la reserva de ese pago fue CANCELADA
     @PostMapping("/{id}/reembolsar")
     public ResponseEntity<?> reembolsar(@PathVariable Long id) {
         Optional<Pago> encontrado = repository.findById(id);

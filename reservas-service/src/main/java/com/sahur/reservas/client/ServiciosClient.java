@@ -36,23 +36,18 @@ public class ServiciosClient {
             return false;
         }
     }
-
-    // Devuelve null si el empleado no existe
     public EmpleadoDto obtenerEmpleado(Long id) {
         return obtener(empleadosUrl + "/empleados/" + id, EmpleadoDto.class);
     }
 
-    // Devuelve null si el vuelo no existe
     public VueloDto obtenerVuelo(Long id) {
         return obtener(vuelosUrl + "/vuelos/" + id, VueloDto.class);
     }
 
-    // Devuelve null si el asiento no existe
     public AsientoDto obtenerAsiento(Long id) {
         return obtener(vuelosUrl + "/asientos/" + id, AsientoDto.class);
     }
 
-    // Todos los asientos de un avion (GET /asientos/avion/{idAvion} en vuelos-service)
     public List<AsientoDto> obtenerAsientosDeAvion(Long idAvion) {
         List<AsientoDto> asientos = restClient.get()
                 .uri(vuelosUrl + "/asientos/avion/" + idAvion)

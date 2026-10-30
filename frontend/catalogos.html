@@ -33,7 +33,6 @@
 
         <div data-contenido="aviones" hidden>
             <div id="sec-aviones"></div>
-            <!-- Asientos del avion elegido -->
             <section class="panel" id="panel-asientos" hidden></section>
         </div>
 
@@ -47,11 +46,9 @@
 <script>
     pintarMenu("catalogos.html");
 
-    // Avion cuyos asientos se estan viendo (abajo, en "Asientos del avion elegido")
     let avionActual = null;
     let asientosAvion = [];
 
-    // ---------- Pestanas ----------
     document.querySelectorAll("[data-pestana]").forEach(boton => {
         boton.addEventListener("click", () => {
             document.querySelectorAll("[data-pestana]").forEach(b => b.setAttribute("aria-selected", b === boton));
@@ -59,7 +56,6 @@
         });
     });
 
-    // ---------- Aeropuertos ----------
     crearSeccion({
         clave: "aeropuertos", contenedor: "sec-aeropuertos",
         servicio: "vuelos", ruta: "/aeropuertos", id: "idAeropuerto", nombre: "aeropuerto",
@@ -76,11 +72,9 @@
             { id: "pais", etiqueta: "Pais", requerido: true }
         ],
         aDatos: v => ({ codigoIata: v.codigoIata, nombre: v.nombre, ciudad: v.ciudad, pais: v.pais }),
-        // Las rutas usan los aeropuertos: al cambiar, se actualizan sus listas
         alCargar: () => refrescarOpciones("rutas")
     });
 
-    // ---------- Clases ----------
     crearSeccion({
         clave: "clases", contenedor: "sec-clases",
         servicio: "vuelos", ruta: "/clases", id: "idClase", nombre: "clase", femenino: true,
@@ -98,7 +92,6 @@
         alCargar: () => { if (avionActual) pintarAsientos(); }
     });
 
-    // ---------- Aviones ----------
     crearSeccion({
         clave: "aviones", contenedor: "sec-aviones",
         servicio: "vuelos", ruta: "/aviones", id: "idAvion", nombre: "avion",
@@ -118,7 +111,6 @@
         aDatos: v => ({ matricula: v.matricula, modelo: v.modelo, capacidad: Number(v.capacidad), estado: v.estado }),
         acciones: a => `<button class="boton boton-principal boton-chico" onclick="verAsientos(${a.idAvion})">Asientos</button>`,
         alCargar: lista => {
-            // Si el avion que se esta viendo cambio (por ejemplo su capacidad), actualizarlo
             if (avionActual) {
                 avionActual = lista.find(a => a.idAvion === avionActual.idAvion) || null;
                 if (avionActual) pintarAsientos(); else document.getElementById("panel-asientos").hidden = true;
@@ -126,7 +118,6 @@
         }
     });
 
-    // ---------- Rutas ----------
     const opcionesAeropuertos = () => (SECCIONES.aeropuertos ? SECCIONES.aeropuertos.lista : [])
         .map(a => ({ valor: a.codigoIata, texto: `${a.codigoIata} - ${a.ciudad}` }));
 
@@ -151,9 +142,6 @@
         })
     });
 
-    // ============================================================
-    // Asientos del avion elegido + generador
-    // ============================================================
     async function verAsientos(idAvion) {
         avionActual = SECCIONES.aviones.lista.find(a => a.idAvion === idAvion);
         const panel = document.getElementById("panel-asientos");
@@ -181,7 +169,6 @@
         const a = avionActual;
         const clases = SECCIONES.clases ? SECCIONES.clases.lista : [];
 
-        // Mapa de asientos (tocar un asiento lo elimina)
         let mapa = capitanDice("Este avion todavia no tiene asientos. Usa el generador de abajo para crearlos de una vez.");
         if (asientosAvion.length > 0) {
             const filas = [...new Set(asientosAvion.map(x => partesAsiento(x.numeroAsiento).fila))].sort((x, y) => x - y);
@@ -204,7 +191,6 @@
             <p class="ayuda">Toca un asiento para eliminarlo. Los asientos con boletos vendidos no se pueden eliminar.</p>`;
         }
 
-        // Siguiente fila libre, para sugerirla en el generador
         const ultimaFila = asientosAvion.reduce((max, x) => Math.max(max, partesAsiento(x.numeroAsiento).fila === 999 ? 0 : partesAsiento(x.numeroAsiento).fila), 0);
         const opcionesClase = clases.map(c => `<option value="${c.idClase}">${escapar(c.nombre)} (${Number(c.porcentajeRecargo)}%)</option>`).join("");
         const economica = clases.find(c => Number(c.porcentajeRecargo) === 0) || clases[0];
@@ -247,7 +233,6 @@
         document.getElementById("form-generador").addEventListener("submit", e => { e.preventDefault(); generarAsientos(); });
     }
 
-    // Ventana en los extremos, pasillo junto al pasillo, centro en lo demas
     function ubicacionDeLetra(indice, total) {
         const mitad = Math.ceil(total / 2);
         if (indice === 0 || indice === total - 1) return "VENTANA";
@@ -269,7 +254,6 @@
             return;
         }
 
-        // Solo se crean los que no existen
         const existentes = new Set(asientosAvion.map(x => x.numeroAsiento.toUpperCase()));
         const nuevos = [];
         for (let fila = desde; fila <= hasta; fila++) {
@@ -302,7 +286,6 @@
                 await api("vuelos", "/asientos", "POST", asiento);
                 creados++;
             } catch (e) {
-                // Si uno falla se sigue con los demas
             }
             progreso.textContent = `Creando asientos: ${creados} de ${nuevos.length}...`;
         }

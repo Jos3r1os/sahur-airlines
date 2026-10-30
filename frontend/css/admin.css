@@ -1,9 +1,3 @@
-/* ============================================================
-   Pantallas de administracion: pestanas y generador de asientos
-   (se usa en catalogos.html y reportes.html)
-   ============================================================ */
-
-/* Pestanas: un riel hundido; la pestana elegida se levanta */
 .pestanas {
     display: inline-flex;
     flex-wrap: wrap;
