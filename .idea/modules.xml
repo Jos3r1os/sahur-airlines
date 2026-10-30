@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/impresora-service/impresora-service.iml" filepath="$PROJECT_DIR$/impresora-service/impresora-service.iml" />
+      <module fileurl="file://$PROJECT_DIR$/oracle-init/oracle-init.iml" filepath="$PROJECT_DIR$/oracle-init/oracle-init.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/sahur-airlines.iml" filepath="$PROJECT_DIR$/.idea/sahur-airlines.iml" />
     </modules>
   </component>
