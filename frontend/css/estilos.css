@@ -330,6 +330,12 @@ strong { font-weight: 600; }
     font-size: 1.05rem;
     margin: .1rem 0 .7rem;
 }
+.usuario .puesto {
+    display: block;
+    color: var(--dorado-claro);
+    font-size: .8rem;
+    margin: -.55rem 0 .75rem;
+}
 .usuario button {
     background: none;
     border: 1px solid rgba(255, 255, 255, .3);
@@ -888,6 +894,7 @@ tr:hover td.vacio { background: transparent; }
     }
     .usuario::before { display: none; }
     .usuario strong { font-size: .95rem; margin: 0; }
+    .usuario .puesto { display: none; }
     .usuario button { font-size: .85rem; }
     .menu nav {
         order: 3;

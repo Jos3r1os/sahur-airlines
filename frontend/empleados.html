@@ -45,20 +45,24 @@
         campos: [
             { id: "usuario", etiqueta: "Usuario", requerido: true },
             { id: "password", etiqueta: "Contrasena", tipo: "password", requerido: true, soloAlCrear: true,
-              leer: () => "", ayuda: "Al editar, dejala vacia para no cambiarla." },
+                leer: () => "", ayuda: "Al editar, dejala vacia para no cambiarla." },
             { id: "nombres", etiqueta: "Nombres", requerido: true },
             { id: "apellidos", etiqueta: "Apellidos", requerido: true },
             { id: "puesto", etiqueta: "Puesto", tipo: "select",
-              // Ademas de los puestos fijos, incluye los que ya tengan los empleados
-              opciones: () => [...new Set([...PUESTOS, ...(SECCIONES.empleados ? SECCIONES.empleados.lista.map(e => e.puesto).filter(Boolean) : [])])]
-                                .map(p => ({ valor: p, texto: p })) },
+                // Ademas de los puestos fijos, incluye los que ya tengan los empleados
+                opciones: () => [...new Set([...PUESTOS, ...(SECCIONES.empleados ? SECCIONES.empleados.lista.map(e => e.puesto).filter(Boolean) : [])])]
+                    .map(p => ({ valor: p, texto: p })) },
             { id: "estado", etiqueta: "Estado", tipo: "select",
-              opciones: () => ["ACTIVO", "INACTIVO"].map(e => ({ valor: e, texto: textoEstado(e) })) }
+                opciones: () => ["ACTIVO", "INACTIVO"].map(e => ({ valor: e, texto: textoEstado(e) })) }
         ],
         aDatos: (v, editando) => {
             // Que nadie se desactive a si mismo y se quede fuera del sistema
             if (editando && SECCIONES.empleados.editando === sesion.idEmpleado && v.estado === "INACTIVO") {
                 throw new Error("No puedes desactivar tu propio usuario.");
+            }
+            // Que el Administrador no se quite su puesto y se quede sin acceso a Empleados
+            if (editando && SECCIONES.empleados.editando === sesion.idEmpleado && v.puesto !== "Administrador") {
+                throw new Error("No puedes quitarte el puesto de Administrador. Pidele el cambio a otro Administrador.");
             }
             const datos = { usuario: v.usuario, nombres: v.nombres, apellidos: v.apellidos, puesto: v.puesto, estado: v.estado };
             if (v.password) datos.password = v.password;

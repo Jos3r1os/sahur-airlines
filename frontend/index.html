@@ -221,7 +221,9 @@
                 usuario: document.getElementById("usuario").value.trim(),
                 password: document.getElementById("password").value
             });
-            guardarSesion(datos);
+            // El login no trae el puesto: se pide aparte para saber que pantallas puede ver
+            const empleado = await api("empleados", `/empleados/${datos.idEmpleado}`);
+            guardarSesion({ ...datos, puesto: empleado.puesto });
             window.location.href = "inicio.html";
         } catch (e) {
             error.textContent = e.message;
@@ -264,7 +266,7 @@
                 estado: "ACTIVO"
             });
             const datos = await api("empleados", "/empleados/login", "POST", { usuario, password });
-            guardarSesion(datos);
+            guardarSesion({ ...datos, puesto: "Administrador" });
             window.location.href = "inicio.html";
         } catch (e) {
             error.textContent = e.message;

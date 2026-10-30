@@ -92,24 +92,54 @@ function icono(nombre) {
                  stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONOS[nombre]}</svg>`;
 }
 
+// Que puestos pueden abrir cada pantalla.
+// Puestos: Administrador (todo), Supervisor (todo menos Empleados) y Vendedor (la venta del dia).
+// Un puesto que no este en esta lista se trata como Vendedor.
+const TODOS = ["Administrador", "Supervisor", "Vendedor"];
+const JEFES = ["Administrador", "Supervisor"];
+
 const PAGINAS = [
-    { archivo: "inicio.html", nombre: "Inicio", icono: "inicio" },
-    { archivo: "vender.html", nombre: "Vender boleto", icono: "boleto" },
-    { archivo: "reservas.html", nombre: "Reservas y pagos", icono: "recibo" },
-    { archivo: "abordaje.html", nombre: "Abordaje", icono: "puerta" },
-    { archivo: "reportes.html", nombre: "Consultas y reportes", icono: "grafica" },
-    { archivo: "pasajeros.html", nombre: "Pasajeros", icono: "personas" },
-    { archivo: "vuelos.html", nombre: "Vuelos", icono: "avion" },
-    { archivo: "catalogos.html", nombre: "Aeropuertos y aviones", icono: "torre" },
-    { archivo: "empleados.html", nombre: "Empleados", icono: "gafete" }
+    { archivo: "inicio.html", nombre: "Inicio", icono: "inicio", para: TODOS },
+    { archivo: "vender.html", nombre: "Vender boleto", icono: "boleto", para: TODOS },
+    { archivo: "reservas.html", nombre: "Reservas y pagos", icono: "recibo", para: TODOS },
+    { archivo: "abordaje.html", nombre: "Abordaje", icono: "puerta", para: TODOS },
+    { archivo: "reportes.html", nombre: "Consultas y reportes", icono: "grafica", para: JEFES },
+    { archivo: "pasajeros.html", nombre: "Pasajeros", icono: "personas", para: TODOS },
+    { archivo: "vuelos.html", nombre: "Vuelos", icono: "avion", para: JEFES },
+    { archivo: "catalogos.html", nombre: "Aeropuertos y aviones", icono: "torre", para: JEFES },
+    { archivo: "empleados.html", nombre: "Empleados", icono: "gafete", para: ["Administrador"] }
 ];
+
+// "administrador" -> "Administrador"; un puesto desconocido cuenta como Vendedor
+function puestoDe(sesion) {
+    const puesto = (sesion && sesion.puesto ? sesion.puesto : "").trim().toLowerCase();
+    return TODOS.find(p => p.toLowerCase() === puesto) || "Vendedor";
+}
+
+function puedeVer(sesion, archivo) {
+    const pagina = PAGINAS.find(p => p.archivo === archivo);
+    return !pagina || pagina.para.includes(puestoDe(sesion));
+}
 
 // Dibuja el menu en el elemento <aside id="menu">
 function pintarMenu(paginaActual) {
     const sesion = requerirSesion();
     if (!sesion) return;
 
-    const enlaces = PAGINAS.map(p => {
+    // Sesiones de antes de los permisos no traen el puesto: hay que entrar otra vez
+    if (!sesion.puesto) {
+        cerrarSesion();
+        throw new Error("Sesion sin puesto: se pide iniciar sesion otra vez.");
+    }
+
+    // Si el puesto no puede ver esta pantalla, regresa al inicio con un aviso
+    if (!puedeVer(sesion, paginaActual)) {
+        document.documentElement.style.visibility = "hidden";
+        window.location.replace("inicio.html?sin-permiso=" + encodeURIComponent(paginaActual));
+        throw new Error("Pantalla no permitida para " + puestoDe(sesion) + ": se detiene el resto de la pagina.");
+    }
+
+    const enlaces = PAGINAS.filter(p => puedeVer(sesion, p.archivo)).map(p => {
         const activa = p.archivo === paginaActual;
         return `<a href="${p.archivo}" class="${activa ? "activa" : ""}" ${activa ? 'aria-current="page"' : ""}>
                     <span class="icono">${icono(p.icono)}</span>${p.nombre}
@@ -125,12 +155,38 @@ function pintarMenu(paginaActual) {
         <div class="usuario">
             De turno hoy
             <strong>${escapar(sesion.usuario)}</strong>
+            <span class="puesto">${escapar(puestoDe(sesion))}</span>
             <button type="button" onclick="cerrarSesion()">Cerrar sesion</button>
         </div>`;
 
     // Si tocas la cara del capitan, el capitan toca: tung, tung, tung
     const cara = document.getElementById("cara-marca");
     cara.addEventListener("click", () => tocarTambor(cara));
+
+    // Aviso cuando llega aqui porque intento abrir una pantalla sin permiso
+    const negada = new URLSearchParams(location.search).get("sin-permiso");
+    const pagina = PAGINAS.find(p => p.archivo === negada);
+    if (pagina) {
+        mostrarMensaje(`${pagina.nombre} es solo para ${pagina.para.join(" y ")}. Pidele acceso a un Administrador.`, "error");
+        history.replaceState(null, "", location.pathname);
+    }
+
+    revisarEmpleado(sesion);
+}
+
+// Revisa en segundo plano si el puesto o el estado del empleado cambiaron desde que entro
+async function revisarEmpleado(sesion) {
+    try {
+        const empleado = await api("empleados", `/empleados/${sesion.idEmpleado}`);
+        if (empleado.estado === "INACTIVO") {
+            cerrarSesion();
+        } else if (empleado.puesto !== sesion.puesto) {
+            guardarSesion({ ...sesion, puesto: empleado.puesto });
+            location.reload();
+        }
+    } catch (e) {
+        // Sin conexion con empleados-service se queda la sesion como esta
+    }
 }
 
 // Reinicia la animacion "tung tung tung" en una imagen del capitan
