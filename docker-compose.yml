@@ -10,6 +10,7 @@ services:
       APP_USER_PASSWORD: vuelos123
     volumes:
       - oracle-data:/opt/oracle/oradata
+      - ./oracle-init/src:/container-entrypoint-initdb.d
 
 volumes:
   oracle-data:

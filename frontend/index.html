@@ -61,6 +61,40 @@
 
             <button class="boton boton-principal" type="submit" id="boton-entrar">Iniciar sesion</button>
         </form>
+
+        <!-- Primer arranque: si la base no tiene empleados, aqui se crea el primero -->
+        <form id="form-primero" hidden>
+            <div class="capitan">
+                <img src="img/capitan-cara.jpg" alt="Capitan Sahur">
+                <p class="globo">La base de datos esta nueva y todavia no hay empleados. Crea el tuyo: quedara como <strong>Administrador</strong> y entraras de una vez.</p>
+            </div>
+
+            <h1>Primer empleado</h1>
+
+            <div class="fila">
+                <div class="campo">
+                    <label for="primero-nombres">Nombres</label>
+                    <input id="primero-nombres" autocomplete="given-name" required>
+                </div>
+                <div class="campo">
+                    <label for="primero-apellidos">Apellidos</label>
+                    <input id="primero-apellidos" autocomplete="family-name" required>
+                </div>
+            </div>
+            <div class="campo">
+                <label for="primero-usuario">Usuario</label>
+                <input id="primero-usuario" autocomplete="username" required>
+            </div>
+            <div class="campo">
+                <label for="primero-password">Contrasena</label>
+                <input id="primero-password" type="password" autocomplete="new-password" minlength="4" required>
+                <p class="ayuda">Anotala: con este usuario creas a los demas en la pantalla Empleados.</p>
+            </div>
+
+            <p id="error-primero" class="ayuda texto-error" role="alert"></p>
+
+            <button class="boton boton-principal" type="submit" id="boton-primero">Crear y entrar</button>
+        </form>
     </section>
 
 </main>
@@ -197,7 +231,50 @@
         }
     });
 
+    // ---------- Primer arranque: base de datos sin empleados ----------
+    async function revisarPrimerEmpleado() {
+        try {
+            const empleados = await api("empleados", "/empleados");
+            if (Array.isArray(empleados) && empleados.length === 0) {
+                document.getElementById("form-login").hidden = true;
+                document.getElementById("form-primero").hidden = false;
+                document.getElementById("primero-nombres").focus();
+            }
+        } catch (e) {
+            // Si empleados-service no responde, se deja el login normal; el error sale al intentar entrar
+        }
+    }
+
+    document.getElementById("form-primero").addEventListener("submit", async (evento) => {
+        evento.preventDefault();
+        const error = document.getElementById("error-primero");
+        const boton = document.getElementById("boton-primero");
+        const usuario = document.getElementById("primero-usuario").value.trim();
+        const password = document.getElementById("primero-password").value;
+        error.textContent = "";
+        boton.disabled = true;
+        boton.textContent = "Creando...";
+        try {
+            await api("empleados", "/empleados", "POST", {
+                usuario,
+                password,
+                nombres: document.getElementById("primero-nombres").value.trim(),
+                apellidos: document.getElementById("primero-apellidos").value.trim(),
+                puesto: "Administrador",
+                estado: "ACTIVO"
+            });
+            const datos = await api("empleados", "/empleados/login", "POST", { usuario, password });
+            guardarSesion(datos);
+            window.location.href = "inicio.html";
+        } catch (e) {
+            error.textContent = e.message;
+            boton.disabled = false;
+            boton.textContent = "Crear y entrar";
+        }
+    });
+
     cargarSalidas();
+    revisarPrimerEmpleado();
 </script>
 </body>
 </html>
